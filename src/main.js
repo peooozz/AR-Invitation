@@ -1,5 +1,4 @@
 import '@google/model-viewer';
-import fortsData from './forts.json';
 import { INVITATION_CONFIG, HERO_DATA } from './config.js';
 import { ARScene } from './ar-scene.js';
 import {
@@ -19,7 +18,7 @@ import {
 class App {
   constructor() {
     this.arScene = null;
-    this.activeItem = null;
+    this.activeItem = HERO_DATA;
     this.audioElement = new Audio();
     this.isMuted = false;
     this.speechUtterance = null;
@@ -64,11 +63,13 @@ class App {
     this.bindAudioEvents();
     this.bindRSVPEvents();
 
-    // Warm up speech synthesis voices on browsers that load them asynchronously
+    // Pre-load / warm up Web Speech Synthesis voices for mobile browsers
     if ('speechSynthesis' in window) {
       window.speechSynthesis.onvoiceschanged = () => {
         getIndianFemaleVoice();
       };
+      // Initial check
+      getIndianFemaleVoice();
     }
   }
 
@@ -124,12 +125,15 @@ class App {
 
     if (btnGrant) {
       btnGrant.addEventListener('click', async () => {
+        // Immediate synchronous call for iOS permission on touch gesture
+        await requestOrientationPermission();
         await this.handleEnterExperience(true);
       });
     }
 
     if (btnSkip) {
       btnSkip.addEventListener('click', async () => {
+        await requestOrientationPermission();
         await this.handleEnterExperience(false);
       });
     }
@@ -138,14 +142,10 @@ class App {
   async handleEnterExperience(useCamera = true) {
     this.permissionScreen.classList.add('hidden');
 
-    // iOS DeviceOrientation must be requested directly in user touch event
-    await requestOrientationPermission();
-
-    // Fullscreen and landscape
+    // Attempt fullscreen & orientation lock (safe fallbacks)
     await requestFullscreen();
     const locked = await lockLandscape();
 
-    // If landscape lock failed and screen is portrait, notify user
     if (!locked && isPortrait()) {
       this.rotateOverlay.classList.remove('hidden');
     }
@@ -203,7 +203,6 @@ class App {
 
     this.arScene = new ARScene({
       onHeroSelected: () => this.showHeroInfo(),
-      onFortSelected: (fort) => this.showFortInfo(fort),
       onLoadingStart: (msg) => {
         if (this.loadingMsg && msg) {
           this.loadingMsg.textContent = msg;
@@ -216,16 +215,21 @@ class App {
       onDistanceUpdate: (dist) => {
         if (this.instructionPill) {
           const formatted = dist.toFixed(1);
-          if (dist <= 2.2) {
-            this.instructionPill.innerHTML = `<span>👑 <b>At the Citadels (${formatted}m)</b> &bull; Tap 3D Models</span>`;
+          if (dist <= 2.8) {
+            this.instructionPill.innerHTML = `<span>👑 <b>At the Swarajya Monument (${formatted}m)</b> &bull; Tap Model to hear Story</span>`;
             this.instructionPill.style.background = 'rgba(201, 162, 75, 0.95)';
             this.instructionPill.style.color = '#14100c';
             this.instructionPill.style.borderColor = '#ffffff';
-          } else {
-            this.instructionPill.innerHTML = `<span>⚔️ <b>360° AR View</b> &bull; Rotate phone or drag to explore</span>`;
-            this.instructionPill.style.background = 'rgba(20, 16, 12, 0.78)';
+          } else if (dist <= 5.5) {
+            this.instructionPill.innerHTML = `<span>⚔️ <b>Approaching (${formatted}m)</b> &bull; Walk closer</span>`;
+            this.instructionPill.style.background = 'rgba(30, 24, 16, 0.82)';
             this.instructionPill.style.color = '#ffd978';
             this.instructionPill.style.borderColor = 'rgba(201, 162, 75, 0.45)';
+          } else {
+            this.instructionPill.innerHTML = `<span>📍 <b>${formatted}m to Swarajya Monument</b> &bull; Walk closer or tap ▲</span>`;
+            this.instructionPill.style.background = 'rgba(20, 16, 12, 0.70)';
+            this.instructionPill.style.color = '#ffeed0';
+            this.instructionPill.style.borderColor = 'rgba(201, 162, 75, 0.30)';
           }
         }
       },
@@ -244,9 +248,6 @@ class App {
       }
     });
 
-    // Setup Fort 1 (Raigad) and fort markers
-    this.arScene.setupFortMarkers(fortsData);
-
     // Start render loop
     this.arScene.start();
   }
@@ -262,6 +263,18 @@ class App {
         this.landingSection.classList.remove('hidden');
         if (this.arScene) {
           this.arScene.stop();
+        }
+      });
+    }
+
+    // 360° Rotate Model Toggle button
+    const btnRotate360 = document.getElementById('btn-rotate-360');
+    if (btnRotate360) {
+      btnRotate360.addEventListener('click', () => {
+        playMarkerChime(587.33);
+        if (this.arScene) {
+          const isRotating = this.arScene.toggleAutoRotate();
+          btnRotate360.classList.toggle('active', isRotating);
         }
       });
     }
@@ -283,7 +296,7 @@ class App {
       btnWalkForward.addEventListener('click', () => {
         playMarkerChime(520);
         if (this.arScene) {
-          this.arScene.walk(-0.4);
+          this.arScene.walk(-0.8); // step 0.8m closer
         }
       });
     }
@@ -294,7 +307,7 @@ class App {
       btnWalkBackward.addEventListener('click', () => {
         playMarkerChime(380);
         if (this.arScene) {
-          this.arScene.walk(0.4);
+          this.arScene.walk(0.8); // step 0.8m back
         }
       });
     }
@@ -305,9 +318,6 @@ class App {
       btnCloseInfo.addEventListener('click', () => {
         this.infoCard.classList.add('hidden');
         this.stopAudio();
-        if (this.arScene) {
-          this.arScene.deselectFort();
-        }
       });
     }
 
@@ -329,7 +339,7 @@ class App {
   }
 
   /* ------------------------------------------------------------------ */
-  /*  5. Info Panel: Hero & Fort Details                                */
+  /*  5. Info Panel: Hero Celebration & Surface AR                      */
   /* ------------------------------------------------------------------ */
   showHeroInfo() {
     this.activeItem = HERO_DATA;
@@ -351,28 +361,6 @@ class App {
     this.playNarration(HERO_DATA);
   }
 
-  showFortInfo(fort) {
-    if (!fort) return;
-    this.activeItem = fort;
-
-    document.getElementById('fort-name').textContent = fort.name;
-    document.getElementById('fort-name-marathi').textContent = fort.nameMarathi || '';
-    document.getElementById('fort-year').textContent = fort.year || 'Historic';
-    document.getElementById('fort-district').textContent = fort.district;
-    document.getElementById('fort-elevation').textContent = fort.elevation;
-    document.getElementById('fort-history').textContent = fort.history;
-
-    this.infoCard.classList.remove('hidden');
-
-    if (this.arModelViewer) {
-      this.arModelViewer.setAttribute('src', fort.modelPath || `/models/${fort.id}.glb`);
-      this.arModelViewer.setAttribute('ios-src', `/usdz/${fort.id}.usdz`);
-      this.arModelViewer.setAttribute('alt', `${fort.name} 3D Citadel`);
-    }
-
-    this.playNarration(fort);
-  }
-
   activateSurfaceAR() {
     if (!this.arModelViewer) return;
     playMarkerChime(659.25);
@@ -384,7 +372,7 @@ class App {
   }
 
   /* ------------------------------------------------------------------ */
-  /*  6. Audio Narration Player & Indian Female Voice Engine             */
+  /*  6. Audio Narration Player & Realistic Indian Female Voice         */
   /* ------------------------------------------------------------------ */
   bindAudioEvents() {
     this.btnPlayPause.addEventListener('click', () => {
@@ -443,7 +431,6 @@ class App {
           this.playIcon.textContent = '❚❚';
         })
         .catch(() => {
-          // Fallback to ElevenLabs dynamic API or Web Speech Indian Female voice
           this.speakWithElevenLabsOrWebSpeech(item.history);
         });
     }
@@ -456,7 +443,7 @@ class App {
     if (!text) return;
     this.stopAudio();
 
-    // Check if we already have a cached TTS blob URL for this text
+    // Check cached TTS blob
     if (this.cachedTTSBlobUrls.has(text)) {
       this.audioElement.src = this.cachedTTSBlobUrls.get(text);
       this.audioElement.play().then(() => {
@@ -484,7 +471,7 @@ class App {
         return;
       }
     } catch {
-      // API call failed, immediately use Web Speech
+      // API call failed, fallback immediately
     }
 
     this.fallbackWebSpeech(text);
@@ -501,7 +488,7 @@ class App {
     this.speechUtterance.rate = 0.95;
     this.speechUtterance.pitch = 1.05;
 
-    // Pick best realistic Indian female voice
+    // Prioritize natural Indian female voice
     const indianVoice = getIndianFemaleVoice();
     if (indianVoice) {
       this.speechUtterance.voice = indianVoice;

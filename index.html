@@ -100,9 +100,9 @@
         To view Chhatrapati Shivaji Maharaj and the 50 historic forts in true Augmented Reality, we request camera and gyroscope access.
       </p>
       <div class="permission-perks">
-        <div class="perk-item">&#10003; 3D Forts in your real space</div>
-        <div class="perk-item">&#10003; Gyroscope motion parallax</div>
-        <div class="perk-item">&#10003; Audio narrations in Marathi &amp; English</div>
+        <div class="perk-item">&#10003; 3D Swarajya Monument in your real space</div>
+        <div class="perk-item">&#10003; Interactive 360&deg; rotation &amp; gyroscope view</div>
+        <div class="perk-item">&#10003; Realistic Indian voice narration</div>
       </div>
       <button id="btn-grant" class="btn-gold">
         <span class="btn-text">Grant Access &amp; Enter</span>
@@ -146,34 +146,39 @@
         <span>&larr;</span> <span class="nav-btn-text">Card</span>
       </button>
       <div id="ar-instruction-pill" class="instruction-pill">
-        <span>📍 9.5m to Swarajya Monument &bull; Walk closer</span>
+        <span>📍 8.0m to Swarajya Monument &bull; Walk closer</span>
       </div>
-      <button id="btn-recenter" class="top-nav-btn" aria-label="Recenter Camera">
-        <span>&#8635;</span> <span class="nav-btn-text">Reset</span>
-      </button>
+      <div class="top-bar-right-actions">
+        <button id="btn-rotate-360" class="top-nav-btn" aria-label="Rotate Model 360">
+          <span>&#8635;</span> <span class="nav-btn-text">360&deg;</span>
+        </button>
+        <button id="btn-recenter" class="top-nav-btn" aria-label="Recenter Camera">
+          <span>&#8693;</span> <span class="nav-btn-text">Reset</span>
+        </button>
+      </div>
     </header>
 
-    <!-- Fort Details Info Card (Sliding Sheet) -->
+    <!-- Swarajya Monument Details Info Card (Sliding Sheet) -->
     <div id="info-card" class="hidden">
       <div class="info-card-handle"></div>
       <button id="btn-close-info" aria-label="Close info card">&times;</button>
       
       <div class="info-header">
         <div class="info-titles">
-          <h3 id="fort-name">Raigad Fort</h3>
-          <p id="fort-name-marathi" class="marathi-name">रायगड किल्ला</p>
+          <h3 id="fort-name">50 Forts Swarajya Tribute</h3>
+          <p id="fort-name-marathi" class="marathi-name">५० किल्ले स्वराज्य पदभ्रमण</p>
         </div>
-        <div class="fort-year-badge" id="fort-year">1674</div>
+        <div class="fort-year-badge" id="fort-year">50+ Forts</div>
       </div>
 
       <div class="info-details-grid">
         <div class="info-pill">
-          <span class="info-pill-label">District</span>
-          <span id="fort-district" class="info-pill-value">Raigad</span>
+          <span class="info-pill-label">Expedition</span>
+          <span id="fort-district" class="info-pill-value">Sahyadri Range, MH</span>
         </div>
         <div class="info-pill">
-          <span class="info-pill-label">Elevation</span>
-          <span id="fort-elevation" class="info-pill-value">2,851 ft</span>
+          <span class="info-pill-label">Scale</span>
+          <span id="fort-elevation" class="info-pill-value">50+ Historic Peaks</span>
         </div>
       </div>
 
@@ -182,7 +187,7 @@
       </div>
 
       <p id="fort-history" class="fort-description">
-        Capital of the Maratha Empire, coronated in 1674 by Chhatrapati Shivaji Maharaj.
+        Honouring the historic achievement of climbing over 50 hill forts of Chhatrapati Shivaji Maharaj. An inspiring journey celebrating Maratha valor, endurance, and devotion to Hindavi Swarajya.
       </p>
 
       <!-- Audio Narration Player -->

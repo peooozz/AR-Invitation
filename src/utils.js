@@ -73,19 +73,30 @@ export function isPortrait() {
  * Returns true when permission is granted or not required (non-iOS).
  */
 export async function requestOrientationPermission() {
+  let granted = true;
   if (
     typeof DeviceOrientationEvent !== 'undefined' &&
     typeof DeviceOrientationEvent.requestPermission === 'function'
   ) {
     try {
       const perm = await DeviceOrientationEvent.requestPermission();
-      return perm === 'granted';
+      granted = perm === 'granted';
     } catch (e) {
-      console.warn('iOS orientation permission denied:', e);
-      return false;
+      console.warn('iOS orientation permission error:', e);
+      granted = false;
     }
   }
-  return true; // Non-iOS, permission not required
+  if (
+    typeof DeviceMotionEvent !== 'undefined' &&
+    typeof DeviceMotionEvent.requestPermission === 'function'
+  ) {
+    try {
+      await DeviceMotionEvent.requestPermission();
+    } catch {
+      // silent
+    }
+  }
+  return granted;
 }
 
 /**

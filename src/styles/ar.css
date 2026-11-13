@@ -78,6 +78,18 @@
   transition: background 0.2s, border-color 0.2s, transform 0.15s;
 }
 
+.top-bar-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.top-nav-btn.active {
+  background: rgba(201, 162, 75, 0.95);
+  color: #14100c;
+  border-color: #ffffff;
+}
+
 .top-nav-btn:hover {
   background: rgba(40, 32, 22, 0.85);
   border-color: var(--gold);

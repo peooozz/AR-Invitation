@@ -5,21 +5,20 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 import { disposeObject, playMarkerChime } from './utils.js';
 
 /**
- * ARScene - Immersive WebAR 3D Experience with 360° Gyroscopic View.
+ * ARScene - Immersive 3D WebAR Experience for Swarajya Tribute.
  *
- * Designed for mobile rear-camera AR with realistic golden & ivory aesthetics.
- * - Hero Monument (Client with Chhatrapati Shivaji Maharaj) placed in front at (0.55, -0.3, -2.8).
- * - Fort Citadel (Raigad / Fort 1) placed gracefully beside hero at (-0.85, -0.3, -2.7).
- * - 360° Gyroscopic device orientation tracking allows looking around in all directions.
- * - Interactive touch drag allows 360° orbit/look around, and pinch-to-zoom for close-up inspection.
- * - Direct touch detection on BOTH 3D models (Hero model & Fort model) triggers historical narration.
+ * Features:
+ * - Hero Monument (Client with Chhatrapati Shivaji Maharaj) placed directly in front (x: 0, z: -8.0m).
+ * - Distant starting view: User approaches monument via walk controls, swipe, pinch, or physical steps.
+ * - Interactive 360° Model Rotation: Single finger drag smoothly rotates the 3D model on its Y axis.
+ * - Mobile Gyroscope: Calibrated DeviceOrientation parallax works reliably across Android & iOS.
+ * - Direct Touch: Tapping anywhere on the 3D hero model or royal beacon opens the story card.
  */
 export class ARScene {
-  constructor({ onHeroSelected, onFortSelected, onLoadingStart, onLoadingEnd, onDistanceUpdate } = {}) {
+  constructor({ onHeroSelected, onLoadingStart, onLoadingEnd, onDistanceUpdate } = {}) {
     this.canvas = document.getElementById('three-canvas');
     this.video = document.getElementById('camera-feed');
     this.onHeroSelected = onHeroSelected || (() => {});
-    this.onFortSelected = onFortSelected || (() => {});
     this.onLoadingStart = onLoadingStart || (() => {});
     this.onLoadingEnd = onLoadingEnd || (() => {});
     this.onDistanceUpdate = onDistanceUpdate || (() => {});
@@ -27,24 +26,27 @@ export class ARScene {
     // ── Three.js Scene ───────────────────────────────────────────────
     this.scene = new THREE.Scene();
 
-    // ── Accurate Ground Placement (Majestic Viewport Setup) ──────────
-    // Hero monument (Shivaji Maharaj & client)
-    this.heroPos = new THREE.Vector3(0.55, -0.35, -2.8);
-    // Fort Citadel (Raigad Fort / Fort 1)
-    this.fortPos = new THREE.Vector3(-0.85, -0.35, -2.7);
+    // ── Hero Placement (Directly in front, far distance) ─────────────
+    // Starts 8.0 meters in front of the player (x: 0 is dead center)
+    this.heroPos = new THREE.Vector3(0, 0, -8.0);
 
-    // ── Camera & Orbit Perspective ──────────────────────────────────
-    this.playerPos = new THREE.Vector3(0, 0, 0); // camera origin
-    this.targetPlayerZ = 0; // for pinch / walk zoom
-    this.lookYaw = 0; // horizontal angle
-    this.lookPitch = -0.05; // slight downward gaze towards monuments
+    // ── Player Camera & Walk Navigation ──────────────────────────────
+    this.playerPos = new THREE.Vector3(0, 1.45, 0); // eye-level 1.45m
+    this.targetPlayerZ = 0; // for walking closer/back
+    this.lookPitch = -0.05; // slight downward gaze towards base
+    this.lookYaw = 0;
 
-    // Gyroscope / DeviceOrientation state
+    // Model 360° Rotation Angle
+    this.modelRotationY = 0;
+    this.autoRotate = false;
+
+    // Mobile Gyroscope / DeviceOrientation State
     this.gyro = { alpha: 0, beta: 0, gamma: 0 };
-    this.gyroQuaternion = new THREE.Quaternion();
-    this.gyroInitialYaw = null;
+    this.gyroOffset = { yaw: 0, pitch: 0 };
+    this.gyroCalibrated = false;
+    this.initialBeta = null;
+    this.initialGamma = null;
     this.hasGyro = false;
-    this.useGyro = true;
 
     const aspect = window.innerWidth / window.innerHeight;
     this.camera = new THREE.PerspectiveCamera(54, aspect, 0.1, 100);
@@ -62,9 +64,8 @@ export class ARScene {
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.3;
+    this.renderer.toneMappingExposure = 1.35;
 
-    // WebGL Context recovery
     this.canvas.addEventListener('webglcontextlost', (e) => {
       e.preventDefault();
       console.warn('WebGL context lost.');
@@ -73,7 +74,7 @@ export class ARScene {
       this._handleResize();
     }, false);
 
-    // ── 3D Model Loaders (Draco & Meshopt) ───────────────────────────
+    // ── 3D Loaders ───────────────────────────────────────────────────
     this.dracoLoader = new DRACOLoader();
     this.dracoLoader.setDecoderPath('/draco/');
 
@@ -81,36 +82,25 @@ export class ARScene {
     this.gltfLoader.setDRACOLoader(this.dracoLoader);
     this.gltfLoader.setMeshoptDecoder(MeshoptDecoder);
 
-    // ── Lighting ─────────────────────────────────────────────────────
-    this._setupLights();
-
     // ── Hierarchy ────────────────────────────────────────────────────
     this.clock = new THREE.Clock();
     this.mixers = [];
 
-    // Hero monument group
+    // Hero Monument Group
     this.heroGroup = new THREE.Group();
     this.heroGroup.name = 'HeroMonumentGroup';
     this.heroGroup.position.copy(this.heroPos);
     this.scene.add(this.heroGroup);
     this.heroModel = null;
 
-    // Fort container group
-    this.fortGroup = new THREE.Group();
-    this.fortGroup.name = 'FortGroup';
-    this.fortGroup.position.copy(this.fortPos);
-    this.scene.add(this.fortGroup);
-    this.fortModel = null;
-    this.currentFort = null;
-
-    // Interactive floating markers
+    // Interactive Floating Marker
     this.markerGroup = new THREE.Group();
     this.scene.add(this.markerGroup);
-    this.fortMarkers = [];
     this.heroMarker = null;
 
-    // Ground rings & atmosphere
-    this._setupPedestalsAndEmbers();
+    // Lighting & Environment
+    this._setupLights();
+    this._setupPedestalAndEmbers();
 
     // ── Interaction State ────────────────────────────────────────────
     this.raycaster = new THREE.Raycaster();
@@ -119,71 +109,85 @@ export class ARScene {
     this.previousPointer = { x: 0, y: 0 };
     this.dragStartPointer = { x: 0, y: 0 };
     this.pinchDist = 0;
-    this.hoveredObject = null;
 
     // Loop
     this.isRunning = false;
-    this.onUpdate = null;
 
     // Bindings
     this._onResize = this._handleResize.bind(this);
     window.addEventListener('resize', this._onResize);
     this._setupInteractionEvents();
     this._setupDeviceOrientation();
+    this._setupMotionWalking();
   }
 
   /* ------------------------------------------------------------------ */
   /*  Lighting & Atmosphere                                              */
   /* ------------------------------------------------------------------ */
   _setupLights() {
-    // Warm natural sunlight
-    const ambientLight = new THREE.AmbientLight(0xfff6e8, 1.4);
+    const ambientLight = new THREE.AmbientLight(0xfff7ed, 1.5);
     this.scene.add(ambientLight);
 
-    // Key light pointing towards both models
-    const sunLight = new THREE.DirectionalLight(0xfffaec, 2.4);
-    sunLight.position.set(4, 8, 3);
-    sunLight.target.position.set(0, 0, -2.8);
+    // Sun key light illuminating the front of the monument
+    const sunLight = new THREE.DirectionalLight(0xfffaec, 2.6);
+    sunLight.position.set(2, 10, 4);
+    sunLight.target.position.set(this.heroPos.x, 1.5, this.heroPos.z);
     this.scene.add(sunLight);
     this.scene.add(sunLight.target);
 
-    // Golden rim light behind models for royal silhouette
-    const rimLight = new THREE.DirectionalLight(0xc9a24b, 1.8);
-    rimLight.position.set(-2, 5, -6);
+    // Golden rim light behind monument
+    const rimLight = new THREE.DirectionalLight(0xc9a24b, 2.0);
+    rimLight.position.set(-2, 7, -12);
     this.scene.add(rimLight);
 
-    // Spotlights for hero & fort
-    const heroSpot = new THREE.PointLight(0xc9a24b, 2.5, 8);
-    heroSpot.position.set(this.heroPos.x, 2.5, this.heroPos.z + 0.5);
-    this.scene.add(heroSpot);
-
-    const fortSpot = new THREE.PointLight(0xffd978, 2.2, 8);
-    fortSpot.position.set(this.fortPos.x, 2.2, this.fortPos.z + 0.5);
-    this.scene.add(fortSpot);
+    // Monument spotlight
+    const spotLight = new THREE.PointLight(0xffd978, 2.8, 25);
+    spotLight.position.set(this.heroPos.x, 4.0, this.heroPos.z + 2.0);
+    this.scene.add(spotLight);
   }
 
-  _setupPedestalsAndEmbers() {
-    // 1. Royal Maratha Yantra Ring under Hero
-    const heroRing = this._createRoyalGroundRing(0.9, 0xc9a24b);
-    heroRing.position.set(this.heroPos.x, -0.34, this.heroPos.z);
-    this.heroGroundRing = heroRing;
-    this.scene.add(heroRing);
+  _setupPedestalAndEmbers() {
+    // Royal Maratha Yantra Pedestal under the Monument
+    const ringGroup = new THREE.Group();
+    const goldMat = new THREE.MeshBasicMaterial({
+      color: 0xc9a24b,
+      transparent: true,
+      opacity: 0.45,
+    });
 
-    // 2. Royal Maratha Yantra Ring under Fort
-    const fortRing = this._createRoyalGroundRing(0.8, 0x8a6a1e);
-    fortRing.position.set(this.fortPos.x, -0.34, this.fortPos.z);
-    this.fortGroundRing = fortRing;
-    this.scene.add(fortRing);
+    // Outer Chakra Ring
+    const outerRing = new THREE.Mesh(new THREE.RingGeometry(1.8, 1.86, 64), goldMat);
+    outerRing.rotation.x = -Math.PI / 2;
+    ringGroup.add(outerRing);
 
-    // 3. Floating golden embers / particles
-    const particleCount = 45;
+    // Middle Ring
+    const midRing = new THREE.Mesh(new THREE.RingGeometry(1.1, 1.15, 48), goldMat);
+    midRing.rotation.x = -Math.PI / 2;
+    ringGroup.add(midRing);
+
+    // Center Disc
+    const centerDisc = new THREE.Mesh(
+      new THREE.CircleGeometry(0.7, 32),
+      new THREE.MeshBasicMaterial({ color: 0x8a6a1e, transparent: true, opacity: 0.25 })
+    );
+    centerDisc.rotation.x = -Math.PI / 2;
+    ringGroup.add(centerDisc);
+
+    ringGroup.position.set(this.heroPos.x, 0.02, this.heroPos.z);
+    this.heroGroundRing = ringGroup;
+    this.scene.add(ringGroup);
+
+    // Floating golden embers around the monument
+    const count = 40;
     const geometry = new THREE.BufferGeometry();
-    const positions = new Float32Array(particleCount * 3);
+    const positions = new Float32Array(count * 3);
 
-    for (let i = 0; i < particleCount; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * 4.0;
-      positions[i * 3 + 1] = -0.3 + Math.random() * 2.2;
-      positions[i * 3 + 2] = -2.8 + (Math.random() - 0.5) * 2.5;
+    for (let i = 0; i < count; i++) {
+      const radius = 0.4 + Math.random() * 2.5;
+      const angle = Math.random() * Math.PI * 2;
+      positions[i * 3] = this.heroPos.x + Math.cos(angle) * radius;
+      positions[i * 3 + 1] = 0.2 + Math.random() * 2.8;
+      positions[i * 3 + 2] = this.heroPos.z + Math.sin(angle) * radius;
     }
 
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -194,7 +198,7 @@ export class ARScene {
     const ctx = canvas.getContext('2d');
     const grad = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
     grad.addColorStop(0, 'rgba(255, 240, 190, 1)');
-    grad.addColorStop(0.4, 'rgba(201, 162, 75, 0.85)');
+    grad.addColorStop(0.35, 'rgba(201, 162, 75, 0.85)');
     grad.addColorStop(1, 'rgba(201, 162, 75, 0)');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, 32, 32);
@@ -202,7 +206,7 @@ export class ARScene {
     const texture = new THREE.CanvasTexture(canvas);
     const material = new THREE.PointsMaterial({
       color: 0xffeaad,
-      size: 0.12,
+      size: 0.15,
       map: texture,
       transparent: true,
       blending: THREE.AdditiveBlending,
@@ -211,25 +215,6 @@ export class ARScene {
 
     this.particles = new THREE.Points(geometry, material);
     this.scene.add(this.particles);
-  }
-
-  _createRoyalGroundRing(radius, colorHex) {
-    const group = new THREE.Group();
-    const mat = new THREE.MeshBasicMaterial({
-      color: colorHex,
-      transparent: true,
-      opacity: 0.45,
-    });
-
-    const outerRing = new THREE.Mesh(new THREE.RingGeometry(radius, radius + 0.04, 48), mat);
-    outerRing.rotation.x = -Math.PI / 2;
-    group.add(outerRing);
-
-    const innerRing = new THREE.Mesh(new THREE.RingGeometry(radius * 0.5, radius * 0.53, 36), mat);
-    innerRing.rotation.x = -Math.PI / 2;
-    group.add(innerRing);
-
-    return group;
   }
 
   /* ------------------------------------------------------------------ */
@@ -254,7 +239,7 @@ export class ARScene {
   }
 
   /* ------------------------------------------------------------------ */
-  /*  First-Person Camera Movement & 360° Gyroscope                     */
+  /*  Camera, Distance & Walking Movement                               */
   /* ------------------------------------------------------------------ */
   _handleResize() {
     const w = window.innerWidth;
@@ -266,93 +251,110 @@ export class ARScene {
   }
 
   _updateCamera() {
-    // Smooth lerp to target walk/zoom position
-    this.playerPos.z += (this.targetPlayerZ - this.playerPos.z) * 0.15;
+    // Smooth lerp to target walk position
+    this.playerPos.z += (this.targetPlayerZ - this.playerPos.z) * 0.12;
     this.camera.position.copy(this.playerPos);
 
-    if (this.hasGyro && this.useGyro) {
-      // Gyroscopic 360° Orientation
-      this.camera.quaternion.copy(this.gyroQuaternion);
-      // Combine manual drag yaw & pitch offset on top of gyro
-      const manualEuler = new THREE.Euler(this.lookPitch, this.lookYaw, 0, 'YXZ');
-      const manualQuat = new THREE.Quaternion().setFromEuler(manualEuler);
-      this.camera.quaternion.multiply(manualQuat);
-    } else {
-      // Touch/Mouse 360° Orbit Look
-      const euler = new THREE.Euler(this.lookPitch, this.lookYaw, 0, 'YXZ');
-      this.camera.quaternion.setFromEuler(euler);
-    }
+    // Combine manual pitch/yaw with gyroscope parallax
+    const finalPitch = this.lookPitch + this.gyroOffset.pitch;
+    const finalYaw = this.lookYaw + this.gyroOffset.yaw;
 
-    // Distance update for HUD
-    const dist = Math.abs(-2.8 - this.playerPos.z);
+    const forwardX = Math.sin(finalYaw) * Math.cos(finalPitch);
+    const forwardY = Math.sin(finalPitch);
+    const forwardZ = -Math.cos(finalYaw) * Math.cos(finalPitch);
+
+    const lookTarget = new THREE.Vector3(
+      this.playerPos.x + forwardX * 10,
+      this.playerPos.y + forwardY * 10,
+      this.playerPos.z + forwardZ * 10
+    );
+
+    this.camera.lookAt(lookTarget);
+
+    // Update real-time distance to monument
+    const distance = Math.abs(this.heroPos.z - this.playerPos.z);
     if (this.onDistanceUpdate) {
-      this.onDistanceUpdate(dist);
+      this.onDistanceUpdate(distance);
     }
-  }
-
-  /**
-   * 360-Degree Gyroscope Setup (DeviceOrientation)
-   */
-  _setupDeviceOrientation() {
-    const zee = new THREE.Vector3(0, 0, 1);
-    const euler = new THREE.Euler();
-    const q0 = new THREE.Quaternion();
-    const q1 = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5)); // - PI/2 on X
-
-    const onDeviceOrientation = (e) => {
-      if (e.alpha === null || e.beta === null || e.gamma === null) return;
-      if (typeof e.alpha !== 'number') return;
-
-      this.hasGyro = true;
-      this.gyro.alpha = e.alpha;
-      this.gyro.beta = e.beta;
-      this.gyro.gamma = e.gamma;
-
-      // Calibrate initial yaw so models start right in front of the user
-      if (this.gyroInitialYaw === null) {
-        this.gyroInitialYaw = e.alpha;
-      }
-
-      const alphaRad = ((e.alpha - this.gyroInitialYaw) * Math.PI) / 180;
-      const betaRad = (e.beta * Math.PI) / 180;
-      const gammaRad = (e.gamma * Math.PI) / 180;
-
-      // Screen orientation angle (0 for portrait, 90 / -90 for landscape)
-      let screenAngle = 0;
-      if (window.screen && window.screen.orientation) {
-        screenAngle = window.screen.orientation.angle || 0;
-      } else if (typeof window.orientation === 'number') {
-        screenAngle = window.orientation;
-      }
-      const orientRad = (screenAngle * Math.PI) / 180;
-
-      // Full 360° spherical device orientation mapping
-      euler.set(betaRad, alphaRad, -gammaRad, 'YXZ');
-      this.gyroQuaternion.setFromEuler(euler);
-      this.gyroQuaternion.multiply(q1); // orient camera out rear of phone
-      this.gyroQuaternion.multiply(q0.setFromAxisAngle(zee, -orientRad));
-    };
-
-    window.addEventListener('deviceorientation', onDeviceOrientation, true);
   }
 
   walk(deltaMeters) {
-    // Zoom closer or step back (clamped safely between +1.0m and -1.8m)
-    this.targetPlayerZ = Math.max(-1.8, Math.min(1.0, this.targetPlayerZ + deltaMeters));
+    // Can walk from initial 0m down to -6.2m (which puts user 1.8m in front of the monument)
+    this.targetPlayerZ = Math.max(-6.2, Math.min(1.0, this.targetPlayerZ + deltaMeters));
   }
 
   resetPosition() {
     this.targetPlayerZ = 0;
-    this.lookYaw = 0;
     this.lookPitch = -0.05;
-    if (this.gyro.alpha !== undefined) {
-      this.gyroInitialYaw = this.gyro.alpha;
+    this.lookYaw = 0;
+    this.modelRotationY = 0;
+    if (this.heroModel) {
+      this.heroModel.rotation.y = 0;
     }
+    this.gyroCalibrated = false;
+    this.gyroOffset = { yaw: 0, pitch: 0 };
     this._updateCamera();
   }
 
   /* ------------------------------------------------------------------ */
-  /*  Hero 3D Model Loading (Client & Shivaji Maharaj)                  */
+  /*  Robust Mobile Gyroscope / DeviceOrientation Engine               */
+  /* ------------------------------------------------------------------ */
+  _setupDeviceOrientation() {
+    const orientationHandler = (e) => {
+      // Must have at least beta and gamma
+      if (e.beta === null || e.gamma === null) return;
+      if (typeof e.beta !== 'number' || typeof e.gamma !== 'number') return;
+
+      this.hasGyro = true;
+      this.gyro.alpha = e.alpha || 0;
+      this.gyro.beta = e.beta;
+      this.gyro.gamma = e.gamma;
+
+      // Calibrate reference holding angle on first arrival
+      if (!this.gyroCalibrated) {
+        this.initialBeta = e.beta;
+        this.initialGamma = e.gamma;
+        this.gyroCalibrated = true;
+        return;
+      }
+
+      // Calculate deltas relative to user's natural holding position
+      const deltaBeta = (e.beta - this.initialBeta) * (Math.PI / 180);
+      const deltaGamma = (e.gamma - this.initialGamma) * (Math.PI / 180);
+
+      // Smooth parallax look (yaw & pitch)
+      // Clamped comfortably so camera never flips away from the monument
+      const targetYaw = Math.max(-0.6, Math.min(0.6, deltaGamma * 0.7));
+      const targetPitch = Math.max(-0.45, Math.min(0.45, -deltaBeta * 0.6));
+
+      // Lerp for buttery smoothness
+      this.gyroOffset.yaw += (targetYaw - this.gyroOffset.yaw) * 0.15;
+      this.gyroOffset.pitch += (targetPitch - this.gyroOffset.pitch) * 0.15;
+    };
+
+    // Listen to both standard deviceorientation and Android's absolute event
+    window.addEventListener('deviceorientationabsolute', orientationHandler, true);
+    window.addEventListener('deviceorientation', orientationHandler, true);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*  Physical Step Walking (Accelerometer Motion)                       */
+  /* ------------------------------------------------------------------ */
+  _setupMotionWalking() {
+    let lastZ = 0;
+    const motionHandler = (e) => {
+      if (!e.acceleration) return;
+      const z = e.acceleration.z || 0;
+      if (Math.abs(z - lastZ) > 1.6) {
+        this.walk(-0.15); // step forward
+      }
+      lastZ = z;
+    };
+    window.addEventListener('devicemotion', motionHandler, true);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*  Hero 3D Model Loading (In-Front View)                             */
   /* ------------------------------------------------------------------ */
   async loadHero(modelUrl = '/models/hero.glb', onProgress = null) {
     this.onLoadingStart('Loading Chhatrapati Shivaji Maharaj & Hero...');
@@ -369,7 +371,7 @@ export class ARScene {
           this.onLoadingEnd();
           resolve(this.heroModel);
         }
-      }, 20000);
+      }, 25000);
 
       this.gltfLoader.load(
         modelUrl,
@@ -380,28 +382,32 @@ export class ARScene {
 
           this.heroModel = gltf.scene;
 
-          // Normalize scale to ~1.6m tall for comfortable AR viewing
+          // Normalize scale to ~3.2m tall (monumental presence seen from distance)
           const box = new THREE.Box3().setFromObject(this.heroModel);
           const size = box.getSize(new THREE.Vector3());
           const center = box.getCenter(new THREE.Vector3());
 
           const maxDim = Math.max(size.x, size.y, size.z) || 1;
-          const targetScale = 1.6 / maxDim;
+          const targetScale = 3.2 / maxDim;
           this.heroModel.scale.setScalar(targetScale);
 
-          // Center horizontally, base on ground
+          // Center horizontally, base directly on ground level
           this.heroModel.position.x = -center.x * targetScale;
           this.heroModel.position.z = -center.z * targetScale;
           this.heroModel.position.y = -box.min.y * targetScale;
 
-          // Double sided materials
+          // Ensure model faces directly towards the camera (not side view)
+          // If the model had sideways geometry, rotation aligns it
+          this.heroModel.rotation.y = 0;
+
+          // Double sided materials so all angles look solid
           this.heroModel.traverse((child) => {
             if (child.isMesh && child.material) {
               child.material.side = THREE.DoubleSide;
             }
           });
 
-          // Embedded animations
+          // Play embedded skeletal animations if present
           if (gltf.animations && gltf.animations.length > 0) {
             const mixer = new THREE.AnimationMixer(this.heroModel);
             gltf.animations.forEach((clip) => mixer.clipAction(clip).play());
@@ -424,7 +430,7 @@ export class ARScene {
           if (resolved) return;
           resolved = true;
           clearTimeout(safetyTimeout);
-          console.warn('Hero model load error, using royal fallback:', err);
+          console.warn('Hero model load error, using fallback:', err);
           this.heroModel = this._createFallbackHeroMonument();
           this.heroGroup.add(this.heroModel);
           this._setupHeroMarker();
@@ -442,17 +448,17 @@ export class ARScene {
     }
 
     const group = new THREE.Group();
-    group.name = 'HeroMarker';
+    group.name = 'HeroRoyalMarker';
 
     // Royal Crown / Saffron Emblem Sprite
     const canvas = document.createElement('canvas');
     canvas.width = 512;
-    canvas.height = 130;
+    canvas.height = 140;
     const ctx = canvas.getContext('2d');
 
-    // Pill background
-    ctx.fillStyle = 'rgba(20, 16, 12, 0.88)';
-    const r = 22, w = 480, h = 106, x = 16, y = 12;
+    // Royal pill container
+    ctx.fillStyle = 'rgba(20, 16, 12, 0.90)';
+    const r = 24, w = 480, h = 116, x = 16, y = 12;
     ctx.beginPath();
     ctx.moveTo(x + r, y);
     ctx.arcTo(x + w, y, x + w, y + h, r);
@@ -462,19 +468,19 @@ export class ARScene {
     ctx.closePath();
     ctx.fill();
 
-    ctx.strokeStyle = '#DE5B10'; // Saffron royal accent
+    ctx.strokeStyle = '#DE5B10';
     ctx.lineWidth = 3.5;
     ctx.stroke();
 
     ctx.fillStyle = '#FFD978';
-    ctx.font = 'bold 32px "Cinzel", serif, sans-serif';
+    ctx.font = 'bold 34px "Cinzel", serif, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('👑 50 Forts Tribute', 256, 48);
+    ctx.fillText('👑 50 Forts Tribute', 256, 50);
 
     ctx.fillStyle = '#FFFDF7';
-    ctx.font = '500 22px "Inter", sans-serif';
-    ctx.fillText('Tap to hear Royal Story', 256, 88);
+    ctx.font = '500 24px "Inter", sans-serif';
+    ctx.fillText('Tap Model to Hear Story', 256, 92);
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.minFilter = THREE.LinearFilter;
@@ -485,16 +491,16 @@ export class ARScene {
     });
 
     const sprite = new THREE.Sprite(spriteMaterial);
-    sprite.scale.set(1.4, 0.36, 1);
-    sprite.position.set(0, 1.7, 0);
+    sprite.scale.set(1.6, 0.44, 1);
+    sprite.position.set(0, 3.4, 0);
     group.add(sprite);
 
-    // Touch hit target sphere
+    // Touch hit sphere encompassing the upper monument
     const hitTarget = new THREE.Mesh(
-      new THREE.SphereGeometry(0.85, 12, 12),
+      new THREE.SphereGeometry(1.6, 12, 12),
       new THREE.MeshBasicMaterial({ visible: false })
     );
-    hitTarget.position.set(0, 0.8, 0);
+    hitTarget.position.set(0, 1.8, 0);
     hitTarget.userData.isHero = true;
     group.add(hitTarget);
 
@@ -520,277 +526,30 @@ export class ARScene {
       roughness: 0.8,
     });
 
-    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.7, 0.2, 8), stoneMat);
-    base.position.y = 0.1;
-    group.add(base);
+    const base1 = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.3, 0.35, 8), stoneMat);
+    base1.position.y = 0.175;
+    group.add(base1);
 
-    const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.5, 0.8, 8), stoneMat);
-    pillar.position.y = 0.55;
-    group.add(pillar);
+    const base2 = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 1.0, 0.4, 8), stoneMat);
+    base2.position.y = 0.55;
+    group.add(base2);
 
     const chhatra = new THREE.Mesh(
-      new THREE.SphereGeometry(0.4, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2),
+      new THREE.SphereGeometry(0.6, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2),
       goldMat
     );
-    chhatra.position.y = 1.35;
+    chhatra.position.y = 2.0;
     group.add(chhatra);
 
-    const kalash = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.25, 8), goldMat);
-    kalash.position.y = 1.65;
+    const kalash = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.35, 8), goldMat);
+    kalash.position.y = 2.45;
     group.add(kalash);
 
     return group;
   }
 
   /* ------------------------------------------------------------------ */
-  /*  Fort 3D Model & Interactive Marker                                 */
-  /* ------------------------------------------------------------------ */
-  setupFortMarkers(fortsList) {
-    while (this.markerGroup.children.length > 0) {
-      const obj = this.markerGroup.children[0];
-      if (obj === this.heroMarker) {
-        this.markerGroup.remove(obj);
-        continue;
-      }
-      this.markerGroup.remove(obj);
-      disposeObject(obj);
-    }
-    this.fortMarkers = [];
-
-    // Re-add hero marker if already created
-    if (this.heroMarker) {
-      this.markerGroup.add(this.heroMarker);
-    }
-
-    if (!fortsList || fortsList.length === 0) return;
-
-    // Use Fort 1 (Raigad) as the primary placed fort
-    const fort = fortsList[0];
-    this.currentFort = fort;
-
-    const marker = this._createFortMarkerMesh(fort);
-    const markerY = 1.1;
-    marker.position.set(this.fortPos.x, markerY, this.fortPos.z);
-    marker.userData = {
-      fort,
-      baseY: markerY,
-    };
-
-    this.markerGroup.add(marker);
-    this.fortMarkers.push(marker);
-
-    // Load fort 3D model
-    this.loadFortModel(fort);
-  }
-
-  _createFortMarkerMesh(fort) {
-    const group = new THREE.Group();
-    group.name = `Marker_${fort.id}`;
-
-    const goldMat = new THREE.MeshStandardMaterial({
-      color: 0xc9a24b,
-      metalness: 0.9,
-      roughness: 0.2,
-      emissive: 0x3d2c0b,
-      emissiveIntensity: 0.4,
-    });
-
-    // 1. Rotating gold chakra ring
-    const ringGeo = new THREE.TorusGeometry(0.32, 0.025, 8, 24);
-    const ringMesh = new THREE.Mesh(ringGeo, goldMat);
-    group.add(ringMesh);
-    group.userData.ringMesh = ringMesh;
-
-    // 2. Central gold diamond core
-    const coreGeo = new THREE.OctahedronGeometry(0.18, 0);
-    const coreMesh = new THREE.Mesh(coreGeo, goldMat);
-    group.add(coreMesh);
-    group.userData.coreMesh = coreMesh;
-
-    // 3. Vertical beacon beam
-    const beamGeo = new THREE.CylinderGeometry(0.04, 0.1, 1.2, 8, 1, true);
-    const beamMat = new THREE.MeshBasicMaterial({
-      color: 0xffd978,
-      transparent: true,
-      opacity: 0.45,
-      blending: THREE.AdditiveBlending,
-      side: THREE.DoubleSide,
-      depthWrite: false,
-    });
-    const beam = new THREE.Mesh(beamGeo, beamMat);
-    beam.position.y = 0.65;
-    group.add(beam);
-    group.userData.beam = beam;
-
-    // 4. Floating label sprite
-    const labelSprite = this._createFortLabelSprite(fort.name, fort.nameMarathi);
-    labelSprite.position.set(0, 0.6, 0);
-    group.add(labelSprite);
-    group.userData.labelSprite = labelSprite;
-
-    // 5. Touch hit sphere
-    const hitTarget = new THREE.Mesh(
-      new THREE.SphereGeometry(0.7, 12, 12),
-      new THREE.MeshBasicMaterial({ visible: false })
-    );
-    hitTarget.userData.parentMarker = group;
-    hitTarget.userData.fort = fort;
-    group.add(hitTarget);
-    group.userData.hitTarget = hitTarget;
-
-    return group;
-  }
-
-  _createFortLabelSprite(nameEn, nameMr) {
-    const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 140;
-    const ctx = canvas.getContext('2d');
-
-    ctx.fillStyle = 'rgba(20, 16, 12, 0.88)';
-    const r = 22, w = 480, h = 116, x = 16, y = 12;
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.strokeStyle = '#C9A24B';
-    ctx.lineWidth = 3.5;
-    ctx.stroke();
-
-    ctx.fillStyle = '#FFFDF7';
-    ctx.font = 'bold 34px "Cinzel", serif, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(nameEn, 256, 50);
-
-    if (nameMr) {
-      ctx.fillStyle = '#C9A24B';
-      ctx.font = '500 24px "Inter", sans-serif';
-      ctx.fillText(nameMr, 256, 92);
-    }
-
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.minFilter = THREE.LinearFilter;
-    const spriteMaterial = new THREE.SpriteMaterial({
-      map: texture,
-      transparent: true,
-      depthTest: false,
-    });
-
-    const sprite = new THREE.Sprite(spriteMaterial);
-    sprite.scale.set(1.4, 0.38, 1);
-    return sprite;
-  }
-
-  async loadFortModel(fort) {
-    this.currentFort = fort;
-    while (this.fortGroup.children.length > 0) {
-      const child = this.fortGroup.children[0];
-      this.fortGroup.remove(child);
-      disposeObject(child);
-    }
-    this.fortModel = null;
-
-    // Check paths: /models/raigad.glb or /models/fort1.glb or fort.modelPath
-    const candidatePaths = [
-      fort.modelPath,
-      `/models/${fort.id}.glb`,
-      '/models/fort1.glb',
-      '/models/raigad.glb'
-    ].filter(Boolean);
-
-    let loaded = false;
-    for (const path of candidatePaths) {
-      try {
-        const gltf = await this._loadGLBPromise(path);
-        const model = gltf.scene;
-
-        model.traverse((child) => {
-          if (child.isMesh && child.material) {
-            child.material.side = THREE.DoubleSide;
-          }
-        });
-
-        const box = new THREE.Box3().setFromObject(model);
-        const size = box.getSize(new THREE.Vector3());
-        const center = box.getCenter(new THREE.Vector3());
-        const maxDim = Math.max(size.x, size.y, size.z) || 1;
-        const targetScale = 1.4 / maxDim;
-
-        model.scale.setScalar(targetScale);
-        model.position.x = -center.x * targetScale;
-        model.position.z = -center.z * targetScale;
-        model.position.y = -box.min.y * targetScale;
-
-        this.fortGroup.add(model);
-        this.fortModel = model;
-        loaded = true;
-        break;
-      } catch {
-        // try next candidate
-      }
-    }
-
-    if (!loaded) {
-      // Procedural Maratha hill fortress fallback
-      const fallback = this._createProceduralFort(fort);
-      this.fortGroup.add(fallback);
-      this.fortModel = fallback;
-    }
-  }
-
-  _createProceduralFort(fort) {
-    const group = new THREE.Group();
-    group.name = `ProceduralFort_${fort.id}`;
-
-    const rockMat = new THREE.MeshStandardMaterial({ color: 0x4a4338, roughness: 0.9 });
-    const wallMat = new THREE.MeshStandardMaterial({ color: 0x8a7a60, roughness: 0.7 });
-    const saffronMat = new THREE.MeshStandardMaterial({ color: 0xde5b10, roughness: 0.4 });
-
-    // Mountain hill base
-    const mountain = new THREE.Mesh(new THREE.ConeGeometry(0.8, 0.6, 7), rockMat);
-    mountain.position.y = 0.3;
-    group.add(mountain);
-
-    // Citadel walls
-    const citadel = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.4, 0.25, 8), wallMat);
-    citadel.position.y = 0.65;
-    group.add(citadel);
-
-    // Bastions
-    for (let i = 0; i < 4; i++) {
-      const angle = (i * Math.PI) / 2;
-      const bastion = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.3, 8), wallMat);
-      bastion.position.set(Math.cos(angle) * 0.35, 0.65, Math.sin(angle) * 0.35);
-      group.add(bastion);
-    }
-
-    // Fluttering Saffron Bhagwa Zenda (Flag)
-    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.5, 6), rockMat);
-    pole.position.set(0, 0.95, 0);
-    group.add(pole);
-
-    const flag = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.25, 3), saffronMat);
-    flag.rotation.z = Math.PI / 2;
-    flag.position.set(0.1, 1.1, 0);
-    group.add(flag);
-
-    return group;
-  }
-
-  _loadGLBPromise(url) {
-    return new Promise((resolve, reject) => {
-      this.gltfLoader.load(url, resolve, undefined, reject);
-    });
-  }
-
-  /* ------------------------------------------------------------------ */
-  /*  Touch Interaction & Raycasting (BOTH MODELS CLICKABLE!)            */
+  /*  Interactive Touch & 360° Model Drag Rotation                      */
   /* ------------------------------------------------------------------ */
   _setupInteractionEvents() {
     const dom = this.canvas;
@@ -816,20 +575,20 @@ export class ARScene {
     };
 
     const onPointerMove = (e) => {
-      // Two-finger pinch to zoom in/out
+      // Two-finger pinch: walk closer / step back
       if (e.touches && e.touches.length === 2) {
         const dx = e.touches[0].clientX - e.touches[1].clientX;
         const dy = e.touches[0].clientY - e.touches[1].clientY;
         const dist = Math.hypot(dx, dy);
         const diff = dist - this.pinchDist;
-        this.walk(-diff * 0.008);
+        this.walk(-diff * 0.012);
         this.pinchDist = dist;
         return;
       }
 
       const pos = getPointerPos(e);
 
-      // Check hover on desktop
+      // Desktop hover check
       const rect = dom.getBoundingClientRect();
       this.mouse.x = ((pos.x - rect.left) / rect.width) * 2 - 1;
       this.mouse.y = -((pos.y - rect.top) / rect.height) * 2 + 1;
@@ -840,10 +599,16 @@ export class ARScene {
       const deltaX = pos.x - this.previousPointer.x;
       const deltaY = pos.y - this.previousPointer.y;
 
-      // Full 360-degree horizontal yaw rotation
-      this.lookYaw -= deltaX * 0.006;
-      // Clamped vertical pitch tilt (-60° to +60°)
-      this.lookPitch = Math.max(-1.0, Math.min(0.8, this.lookPitch - deltaY * 0.004));
+      // ── 360° MODEL ROTATION: Horizontal drag directly rotates the model!
+      this.modelRotationY += deltaX * 0.01;
+      if (this.heroModel) {
+        this.heroModel.rotation.y = this.modelRotationY;
+      }
+
+      // Vertical swipe: walk closer (swipe up) or step back (swipe down)
+      if (Math.abs(deltaY) > Math.abs(deltaX) * 1.2) {
+        this.walk(-deltaY * 0.012);
+      }
 
       this.previousPointer = { x: pos.x, y: pos.y };
     };
@@ -857,7 +622,7 @@ export class ARScene {
         pos.y - this.dragStartPointer.y
       );
 
-      // Tap / Touch Detection
+      // Tap / Touch Detection: quick tap on the model
       if (distMoved < 15) {
         this._handleClick(pos.x, pos.y);
       }
@@ -866,7 +631,7 @@ export class ARScene {
     };
 
     const onWheel = (e) => {
-      this.walk(e.deltaY * 0.003);
+      this.walk(e.deltaY * 0.005);
     };
 
     dom.addEventListener('pointerdown', onPointerDown, { passive: true });
@@ -878,22 +643,15 @@ export class ARScene {
   _checkHover() {
     this.raycaster.setFromCamera(this.mouse, this.camera);
     const intersects = this.raycaster.intersectObjects(
-      [this.heroGroup, this.fortGroup, this.markerGroup],
+      [this.heroGroup, this.markerGroup],
       true
     );
-
-    if (intersects.length > 0) {
-      this.canvas.style.cursor = 'pointer';
-    } else {
-      this.canvas.style.cursor = 'default';
-    }
+    this.canvas.style.cursor = intersects.length > 0 ? 'pointer' : 'default';
   }
 
   /**
    * Raycast Touch Handler:
-   * Detects clicks on:
-   * 1. Hero 3D Model or Hero Marker -> invokes onHeroSelected()
-   * 2. Fort 3D Model or Fort Marker -> invokes onFortSelected()
+   * Tapping anywhere on the Hero 3D model or its marker triggers onHeroSelected()
    */
   _handleClick(clientX, clientY) {
     const rect = this.canvas.getBoundingClientRect();
@@ -902,57 +660,22 @@ export class ARScene {
 
     this.raycaster.setFromCamera(new THREE.Vector2(x, y), this.camera);
 
-    // Test intersection against Hero group, Fort group, and Marker group
     const targets = [];
     if (this.heroGroup) targets.push(this.heroGroup);
-    if (this.fortGroup) targets.push(this.fortGroup);
     if (this.markerGroup) targets.push(this.markerGroup);
 
     const intersects = this.raycaster.intersectObjects(targets, true);
 
     if (intersects.length > 0) {
-      let curr = intersects[0].object;
-      let isHero = false;
-      let isFort = false;
-
-      while (curr && curr !== this.scene) {
-        if (curr === this.heroGroup || curr.userData?.isHero || (this.heroMarker && curr === this.heroMarker)) {
-          isHero = true;
-          break;
-        }
-        if (curr === this.fortGroup || curr.userData?.parentMarker || curr.userData?.fort) {
-          isFort = true;
-          break;
-        }
-        curr = curr.parent;
-      }
-
-      if (isHero) {
-        playMarkerChime(528);
-        this.onHeroSelected();
-        return;
-      }
-
-      if (isFort) {
-        playMarkerChime(587.33);
-        const fort = intersects[0].object.userData?.fort ||
-                     intersects[0].object.userData?.parentMarker?.userData?.fort ||
-                     this.currentFort;
-        this.onFortSelected(fort);
-        return;
-      }
+      playMarkerChime(528);
+      this.onHeroSelected();
     }
   }
 
-  selectFort(fort) {
-    this.currentFort = fort;
-    this.loadFortModel(fort);
-    playMarkerChime(587.33);
-    this.onFortSelected(fort);
-  }
-
-  deselectFort() {
-    // reset marker highlights
+  /** Rotate model 360° continuously or toggle */
+  toggleAutoRotate() {
+    this.autoRotate = !this.autoRotate;
+    return this.autoRotate;
   }
 
   /* ------------------------------------------------------------------ */
@@ -977,34 +700,25 @@ export class ARScene {
     // 2. Camera & orientation update
     this._updateCamera();
 
-    // 3. Floating markers bobbing
-    this.fortMarkers.forEach((marker) => {
-      const { baseY, ringMesh, coreMesh } = marker.userData;
-      marker.position.y = baseY + Math.sin(elapsed * 2.2) * 0.05;
-      if (ringMesh) ringMesh.rotation.z += 0.015;
-      if (coreMesh) coreMesh.rotation.y += 0.02;
-    });
+    // 3. Auto rotation if enabled
+    if (this.autoRotate && this.heroModel) {
+      this.modelRotationY += delta * 0.5;
+      this.heroModel.rotation.y = this.modelRotationY;
+    }
 
+    // 4. Marker bobbing
     if (this.heroMarker) {
-      this.heroMarker.position.y = this.heroMarker.userData.baseY + Math.sin(elapsed * 2.0 + 1) * 0.04;
+      this.heroMarker.position.y = this.heroMarker.userData.baseY + Math.sin(elapsed * 2.2) * 0.06;
     }
 
-    // 4. Ground rings slow rotation
+    // 5. Subtle pedestal ground ring rotation
     if (this.heroGroundRing) {
-      this.heroGroundRing.rotation.y = elapsed * 0.04;
-    }
-    if (this.fortGroundRing) {
-      this.fortGroundRing.rotation.y = -elapsed * 0.03;
+      this.heroGroundRing.rotation.y = elapsed * 0.03;
     }
 
-    // 5. Floating embers
+    // 6. Floating golden embers
     if (this.particles) {
-      this.particles.rotation.y = elapsed * 0.025;
-    }
-
-    // 6. External update callback
-    if (this.onUpdate) {
-      this.onUpdate(delta, elapsed);
+      this.particles.rotation.y = elapsed * 0.02;
     }
 
     this.renderer.render(this.scene, this.camera);
@@ -1018,11 +732,8 @@ export class ARScene {
     this.stop();
     window.removeEventListener('resize', this._onResize);
     if (this.heroModel) disposeObject(this.heroModel);
-    if (this.fortModel) disposeObject(this.fortModel);
-    this.fortMarkers.forEach((m) => disposeObject(m));
     if (this.heroMarker) disposeObject(this.heroMarker);
     if (this.heroGroundRing) disposeObject(this.heroGroundRing);
-    if (this.fortGroundRing) disposeObject(this.fortGroundRing);
     if (this.particles) disposeObject(this.particles);
     this.renderer.dispose();
     this.dracoLoader.dispose();
