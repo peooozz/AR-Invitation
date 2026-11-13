@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const API_KEY = process.env.ELEVENLABS_API_KEY;
-const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || 'JBFqnCBsd6RMkjVDRZzb';
+const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || 'EXAVITQu4vr4xnSDxMaL';
 const MODEL_ID = 'eleven_multilingual_v2';
 const OUTPUT_DIR = path.resolve(__dirname, '../public/audio');
 const FORTS_PATH = path.resolve(__dirname, '../src/forts.json');

@@ -174,3 +174,38 @@ export function playRoyalIntro() {
     // audio failure silent
   }
 }
+
+/**
+ * Locate best available realistic Indian female voice in browser Web Speech API
+ */
+export function getIndianFemaleVoice() {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices || voices.length === 0) return null;
+
+  // 1. Check known Indian female voice identifiers (iOS, Android, Windows, Mac)
+  const preferredNames = ['veena', 'neerja', 'heera', 'lekha', 'aditi', 'priya', 'swara', 'anjali'];
+  for (const name of preferredNames) {
+    const match = voices.find((v) => v.name.toLowerCase().includes(name));
+    if (match) return match;
+  }
+
+  // 2. English (India) female voice
+  const inFemale = voices.find(
+    (v) => (v.lang === 'en-IN' || v.lang === 'hi-IN') &&
+           (v.name.toLowerCase().includes('female') || !v.name.toLowerCase().includes('male'))
+  );
+  if (inFemale) return inFemale;
+
+  // 3. Any English (India) or Hindi (India) voice
+  const anyIn = voices.find((v) => v.lang === 'en-IN' || v.lang === 'hi-IN');
+  if (anyIn) return anyIn;
+
+  // 4. Any clear female voice
+  const generalFemale = voices.find(
+    (v) => v.name.toLowerCase().includes('female') ||
+           v.name.toLowerCase().includes('samantha') ||
+           v.name.toLowerCase().includes('natural')
+  );
+  return generalFemale || voices[0] || null;
+}

@@ -1,6 +1,6 @@
 import '@google/model-viewer';
 import fortsData from './forts.json';
-import { INVITATION_CONFIG } from './config.js';
+import { INVITATION_CONFIG, HERO_DATA } from './config.js';
 import { ARScene } from './ar-scene.js';
 import {
   requestCamera,
@@ -10,6 +10,7 @@ import {
   requestOrientationPermission,
   playRoyalIntro,
   playMarkerChime,
+  getIndianFemaleVoice,
 } from './utils.js';
 
 /**
@@ -18,11 +19,12 @@ import {
 class App {
   constructor() {
     this.arScene = null;
-    this.activeFort = null;
+    this.activeItem = null;
     this.audioElement = new Audio();
     this.isMuted = false;
     this.speechUtterance = null;
     this.isSpeechPlaying = false;
+    this.cachedTTSBlobUrls = new Map();
 
     // DOM Elements
     this.landingSection = document.getElementById('landing');
@@ -61,6 +63,13 @@ class App {
     this.bindAREvents();
     this.bindAudioEvents();
     this.bindRSVPEvents();
+
+    // Warm up speech synthesis voices on browsers that load them asynchronously
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        getIndianFemaleVoice();
+      };
+    }
   }
 
   /* ------------------------------------------------------------------ */
@@ -129,10 +138,10 @@ class App {
   async handleEnterExperience(useCamera = true) {
     this.permissionScreen.classList.add('hidden');
 
-    // Crucial: iOS DeviceOrientation must be requested directly in this user touch event
+    // iOS DeviceOrientation must be requested directly in user touch event
     await requestOrientationPermission();
 
-    // Request fullscreen and attempt orientation lock
+    // Fullscreen and landscape
     await requestFullscreen();
     const locked = await lockLandscape();
 
@@ -145,12 +154,12 @@ class App {
     this.loadingOverlay.classList.remove('hidden');
     this.loadingMsg.textContent = 'Summoning Swarajya Citadels...';
 
-    // Reveal AR section first so canvas & video have non-zero dimensions
+    // Reveal AR section
     this.arSection.classList.remove('hidden');
 
     let stream = null;
     if (useCamera) {
-      this.loadingMsg.textContent = 'Accessing Camera AR Viewport...';
+      this.loadingMsg.textContent = 'Opening Back Camera AR Viewport...';
       try {
         stream = await requestCamera();
       } catch (err) {
@@ -159,12 +168,10 @@ class App {
     }
 
     try {
-      // Initialize 3D AR Scene
       await this.initARScene(stream);
     } catch (err) {
       console.error('AR Scene initialization failed:', err);
     } finally {
-      // Always dismiss loading overlay so UI never gets stuck
       this.loadingOverlay.classList.add('hidden');
     }
   }
@@ -177,7 +184,6 @@ class App {
       });
     }
 
-    // Automatically dismiss rotate overlay when device rotates to landscape
     const checkOrientation = () => {
       if (!isPortrait() && !this.rotateOverlay.classList.contains('hidden')) {
         this.rotateOverlay.classList.add('hidden');
@@ -196,44 +202,37 @@ class App {
     }
 
     this.arScene = new ARScene({
+      onHeroSelected: () => this.showHeroInfo(),
       onFortSelected: (fort) => this.showFortInfo(fort),
       onLoadingStart: (msg) => {
         if (this.loadingMsg && msg) {
           this.loadingMsg.textContent = msg;
         }
-        this.fortLoading.classList.remove('hidden');
+        if (this.fortLoading) this.fortLoading.classList.remove('hidden');
       },
       onLoadingEnd: () => {
-        this.fortLoading.classList.add('hidden');
+        if (this.fortLoading) this.fortLoading.classList.add('hidden');
       },
       onDistanceUpdate: (dist) => {
         if (this.instructionPill) {
           const formatted = dist.toFixed(1);
-          if (dist <= 2.8) {
-            this.instructionPill.innerHTML = `<span>👑 <b>At the Swarajya Throne (${formatted}m)</b> &bull; Tap Raigad Fort</span>`;
-            this.instructionPill.style.background = 'rgba(201, 162, 75, 0.92)';
+          if (dist <= 2.2) {
+            this.instructionPill.innerHTML = `<span>👑 <b>At the Citadels (${formatted}m)</b> &bull; Tap 3D Models</span>`;
+            this.instructionPill.style.background = 'rgba(201, 162, 75, 0.95)';
             this.instructionPill.style.color = '#14100c';
             this.instructionPill.style.borderColor = '#ffffff';
-          } else if (dist <= 5.5) {
-            this.instructionPill.innerHTML = `<span>⚔️ <b>Approaching (${formatted}m)</b> &bull; Walk closer</span>`;
-            this.instructionPill.style.background = 'rgba(30, 24, 16, 0.78)';
+          } else {
+            this.instructionPill.innerHTML = `<span>⚔️ <b>360° AR View</b> &bull; Rotate phone or drag to explore</span>`;
+            this.instructionPill.style.background = 'rgba(20, 16, 12, 0.78)';
             this.instructionPill.style.color = '#ffd978';
             this.instructionPill.style.borderColor = 'rgba(201, 162, 75, 0.45)';
-          } else {
-            this.instructionPill.innerHTML = `<span>📍 <b>${formatted}m to Swarajya Monument</b> &bull; Walk closer or swipe up</span>`;
-            this.instructionPill.style.background = 'rgba(20, 16, 12, 0.65)';
-            this.instructionPill.style.color = '#ffeed0';
-            this.instructionPill.style.borderColor = 'rgba(201, 162, 75, 0.25)';
           }
         }
       },
     });
 
-    // Start video feed or fallback
+    // Start back camera video feed or royal fallback
     await this.arScene.startCamera(cameraStream);
-
-    // Setup gyroscope parallax
-    this.arScene.setupDeviceOrientation();
 
     // Load central hero model (client with Shivaji Maharaj)
     if (this.loadingMsg) {
@@ -245,7 +244,7 @@ class App {
       }
     });
 
-    // Setup the 7 orbital fort markers
+    // Setup Fort 1 (Raigad) and fort markers
     this.arScene.setupFortMarkers(fortsData);
 
     // Start render loop
@@ -284,7 +283,7 @@ class App {
       btnWalkForward.addEventListener('click', () => {
         playMarkerChime(520);
         if (this.arScene) {
-          this.arScene.walk(-0.8); // step 0.8m closer
+          this.arScene.walk(-0.4);
         }
       });
     }
@@ -295,7 +294,7 @@ class App {
       btnWalkBackward.addEventListener('click', () => {
         playMarkerChime(380);
         if (this.arScene) {
-          this.arScene.walk(0.8); // step 0.8m back
+          this.arScene.walk(0.4);
         }
       });
     }
@@ -330,12 +329,32 @@ class App {
   }
 
   /* ------------------------------------------------------------------ */
-  /*  5. Fort Info Panel & Surface AR                                    */
+  /*  5. Info Panel: Hero & Fort Details                                */
   /* ------------------------------------------------------------------ */
-  showFortInfo(fort) {
-    this.activeFort = fort;
+  showHeroInfo() {
+    this.activeItem = HERO_DATA;
 
-    // Populate data
+    document.getElementById('fort-name').textContent = HERO_DATA.name;
+    document.getElementById('fort-name-marathi').textContent = HERO_DATA.nameMarathi || '';
+    document.getElementById('fort-year').textContent = HERO_DATA.badge || '50+ Forts';
+    document.getElementById('fort-district').textContent = HERO_DATA.district;
+    document.getElementById('fort-elevation').textContent = HERO_DATA.elevation;
+    document.getElementById('fort-history').textContent = HERO_DATA.history;
+
+    this.infoCard.classList.remove('hidden');
+
+    if (this.arModelViewer) {
+      this.arModelViewer.setAttribute('src', HERO_DATA.modelPath);
+      this.arModelViewer.setAttribute('alt', `${HERO_DATA.name} 3D Monument`);
+    }
+
+    this.playNarration(HERO_DATA);
+  }
+
+  showFortInfo(fort) {
+    if (!fort) return;
+    this.activeItem = fort;
+
     document.getElementById('fort-name').textContent = fort.name;
     document.getElementById('fort-name-marathi').textContent = fort.nameMarathi || '';
     document.getElementById('fort-year').textContent = fort.year || 'Historic';
@@ -343,35 +362,29 @@ class App {
     document.getElementById('fort-elevation').textContent = fort.elevation;
     document.getElementById('fort-history').textContent = fort.history;
 
-    // Show panel
     this.infoCard.classList.remove('hidden');
 
-    // Configure <model-viewer> for Surface AR
     if (this.arModelViewer) {
-      this.arModelViewer.setAttribute('src', `/models/${fort.id}.glb`);
+      this.arModelViewer.setAttribute('src', fort.modelPath || `/models/${fort.id}.glb`);
       this.arModelViewer.setAttribute('ios-src', `/usdz/${fort.id}.usdz`);
       this.arModelViewer.setAttribute('alt', `${fort.name} 3D Citadel`);
     }
 
-    // Start Narration Audio
-    this.playFortNarration(fort);
+    this.playNarration(fort);
   }
 
   activateSurfaceAR() {
     if (!this.arModelViewer) return;
-    playMarkerChime(659.25); // E5
-
-    // If model-viewer has activateAR method
+    playMarkerChime(659.25);
     if (typeof this.arModelViewer.activateAR === 'function') {
       this.arModelViewer.activateAR();
     } else {
-      // Fallback: trigger click on the model-viewer element
       this.arModelViewer.click();
     }
   }
 
   /* ------------------------------------------------------------------ */
-  /*  6. Audio Narration Player                                         */
+  /*  6. Audio Narration Player & Indian Female Voice Engine             */
   /* ------------------------------------------------------------------ */
   bindAudioEvents() {
     this.btnPlayPause.addEventListener('click', () => {
@@ -394,7 +407,6 @@ class App {
 
     this.progressContainer.addEventListener('click', seek);
 
-    // Audio element state listeners
     this.audioElement.addEventListener('timeupdate', () => {
       if (!this.audioElement.duration) return;
       const progress = (this.audioElement.currentTime / this.audioElement.duration) * 100;
@@ -408,15 +420,16 @@ class App {
     });
 
     this.audioElement.addEventListener('error', () => {
-      console.warn('Audio file playback fallback to Web Speech Synthesis');
-      this.fallbackWebSpeech();
+      if (this.activeItem) {
+        this.speakWithElevenLabsOrWebSpeech(this.activeItem.history);
+      }
     });
   }
 
-  playFortNarration(fort) {
+  playNarration(item) {
     this.stopAudio();
 
-    const audioSrc = `/audio/${fort.id}.mp3`;
+    const audioSrc = item.audioPath || `/audio/${item.id}.mp3`;
     this.audioElement.src = audioSrc;
     this.audioElement.currentTime = 0;
     this.audioElement.muted = this.isMuted;
@@ -429,21 +442,70 @@ class App {
         .then(() => {
           this.playIcon.textContent = '❚❚';
         })
-        .catch((e) => {
-          console.log('Autoplay restriction or missing file, standing by for manual play:', e.message);
-          this.playIcon.textContent = '▶';
+        .catch(() => {
+          // Fallback to ElevenLabs dynamic API or Web Speech Indian Female voice
+          this.speakWithElevenLabsOrWebSpeech(item.history);
         });
     }
   }
 
-  fallbackWebSpeech() {
-    if (!('speechSynthesis' in window) || !this.activeFort) return;
+  /**
+   * Speak narration using ElevenLabs API with graceful Indian female Web Speech fallback
+   */
+  async speakWithElevenLabsOrWebSpeech(text) {
+    if (!text) return;
+    this.stopAudio();
+
+    // Check if we already have a cached TTS blob URL for this text
+    if (this.cachedTTSBlobUrls.has(text)) {
+      this.audioElement.src = this.cachedTTSBlobUrls.get(text);
+      this.audioElement.play().then(() => {
+        this.playIcon.textContent = '❚❚';
+      }).catch(() => {
+        this.fallbackWebSpeech(text);
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        this.cachedTTSBlobUrls.set(text, blobUrl);
+        this.audioElement.src = blobUrl;
+        await this.audioElement.play();
+        this.playIcon.textContent = '❚❚';
+        return;
+      }
+    } catch {
+      // API call failed, immediately use Web Speech
+    }
+
+    this.fallbackWebSpeech(text);
+  }
+
+  /**
+   * Realistic Indian Female Voice Synthesizer
+   */
+  fallbackWebSpeech(text) {
+    if (!('speechSynthesis' in window) || !text) return;
     window.speechSynthesis.cancel();
 
-    const textToSpeak = `${this.activeFort.name}. ${this.activeFort.district} district. Elevation ${this.activeFort.elevation}. ${this.activeFort.history}`;
-    this.speechUtterance = new SpeechSynthesisUtterance(textToSpeak);
+    this.speechUtterance = new SpeechSynthesisUtterance(text);
     this.speechUtterance.rate = 0.95;
-    this.speechUtterance.pitch = 1.0;
+    this.speechUtterance.pitch = 1.05;
+
+    // Pick best realistic Indian female voice
+    const indianVoice = getIndianFemaleVoice();
+    if (indianVoice) {
+      this.speechUtterance.voice = indianVoice;
+    }
 
     this.speechUtterance.onstart = () => {
       this.isSpeechPlaying = true;
@@ -451,6 +513,11 @@ class App {
     };
 
     this.speechUtterance.onend = () => {
+      this.isSpeechPlaying = false;
+      this.playIcon.textContent = '▶';
+    };
+
+    this.speechUtterance.onerror = () => {
       this.isSpeechPlaying = false;
       this.playIcon.textContent = '▶';
     };
@@ -467,7 +534,11 @@ class App {
     }
 
     if (this.audioElement.paused) {
-      this.audioElement.play().catch(() => this.fallbackWebSpeech());
+      this.audioElement.play().catch(() => {
+        if (this.activeItem) {
+          this.speakWithElevenLabsOrWebSpeech(this.activeItem.history);
+        }
+      });
       this.playIcon.textContent = '❚❚';
     } else {
       this.audioElement.pause();

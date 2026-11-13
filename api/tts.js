@@ -2,6 +2,14 @@
 // The API key stays server-side and is never exposed to the client.
 
 export default async function handler(req, res) {
+  // Allow OPTIONS preflight for CORS if needed
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    return res.status(200).end();
+  }
+
   // Only allow POST requests
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -14,7 +22,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { text, voiceId = process.env.ELEVENLABS_VOICE_ID || 'JBFqnCBsd6RMkjVDRZzb', language = 'en' } = req.body;
+    const { text, voiceId = process.env.ELEVENLABS_VOICE_ID || 'EXAVITQu4vr4xnSDxMaL', language = 'en' } = req.body || {};
 
     if (!text) {
       return res.status(400).json({ error: 'Text is required' });
@@ -37,7 +45,7 @@ export default async function handler(req, res) {
           text,
           model_id: 'eleven_multilingual_v2',
           voice_settings: {
-            stability: 0.5,
+            stability: 0.55,
             similarity_boost: 0.75,
           },
         }),
@@ -47,16 +55,17 @@ export default async function handler(req, res) {
     if (!response.ok) {
       const errorText = await response.text().catch(() => '');
       console.error(`ElevenLabs API error ${response.status}: ${errorText}`);
-      throw new Error(`ElevenLabs API error: ${response.status}`);
+      return res.status(response.status).json({ error: `ElevenLabs API error: ${response.status}`, details: errorText });
     }
 
     const audioBuffer = await response.arrayBuffer();
 
     res.setHeader('Content-Type', 'audio/mpeg');
     res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 24h
-    res.send(Buffer.from(audioBuffer));
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    return res.send(Buffer.from(audioBuffer));
   } catch (error) {
     console.error('TTS proxy error:', error);
-    res.status(500).json({ error: 'Failed to generate audio' });
+    return res.status(500).json({ error: 'Failed to generate audio' });
   }
 }

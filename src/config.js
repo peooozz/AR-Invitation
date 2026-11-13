@@ -1,12 +1,12 @@
 /**
  * AR Invitation Configuration
- * Customize the client name, event details, venue, and RSVP here.
+ * Customize the client name, event details, venue, RSVP, and 3D hero details.
  */
 export const INVITATION_CONFIG = {
   // Client & Event Details
   clientName: "Shri Vikramaditya Shinde",
   eventName: "50 Forts Swarajya Expedition Celebration",
-  tagline: "Celebrating the ascent of 50+ historic forts of Chhatrapati Shivaji Maharaj",
+  tagline: "Celebrating the triumphant ascent of 50+ historic forts of Chhatrapati Shivaji Maharaj",
   invitationNote: "Cordially invites you and your family to an evening of Maratha heritage, triumph, and celebration.",
   
   // Date & Venue
@@ -25,4 +25,23 @@ export const INVITATION_CONFIG = {
   // Audio & 3D Settings
   defaultAudioLanguage: "en", // 'en' | 'hi' | 'mr'
   heroModelPath: "/models/hero.glb",
+  heroAudioPath: "/audio/hero.mp3",
+};
+
+/**
+ * Hero Monument Data (Client with Chhatrapati Shivaji Maharaj)
+ * Displayed when user touches the central Hero 3D model
+ */
+export const HERO_DATA = {
+  id: "hero",
+  name: "50 Forts Swarajya Tribute",
+  nameMarathi: "५० किल्ले स्वराज्य पदभ्रमण",
+  badge: "50+ Killas Conquered",
+  subtitle: "Shri Vikramaditya Shinde with Chhatrapati Shivaji Maharaj",
+  district: "Sahyadri Range, Maharashtra",
+  elevation: "Over 50 Peaks Scaled",
+  year: "2026 Celebration",
+  history: "Honouring the historic achievement of climbing over 50 hill forts of Chhatrapati Shivaji Maharaj. From the rugged peaks of Torna and Rajgad to the capital at Raigad, an inspiring journey celebrating Maratha valor, endurance, and devotion to Hindavi Swarajya.",
+  audioPath: "/audio/hero.mp3",
+  modelPath: "/models/hero.glb"
 };
