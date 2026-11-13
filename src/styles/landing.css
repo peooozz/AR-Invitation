@@ -1,0 +1,259 @@
+/* ===========================
+   LANDING.CSS — Royal Maratha Invitation Card
+   =========================== */
+
+#landing {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: var(--ivory);
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 10;
+}
+
+/* Floating ambient gold light orbs */
+.landing-bg-decorations {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.gold-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.14;
+}
+
+.orb-1 {
+  top: -15%;
+  left: -15%;
+  width: 50vw;
+  height: 50vw;
+  background: radial-gradient(circle, var(--gold) 0%, transparent 70%);
+}
+
+.orb-2 {
+  bottom: -15%;
+  right: -15%;
+  width: 45vw;
+  height: 45vw;
+  background: radial-gradient(circle, var(--deep-gold) 0%, transparent 70%);
+}
+
+.orb-3 {
+  top: 40%;
+  right: 10%;
+  width: 25vw;
+  height: 25vw;
+  background: radial-gradient(circle, #ffe394 0%, transparent 70%);
+  opacity: 0.1;
+}
+
+/* ===== Luxury Invitation Card ===== */
+.invitation-content {
+  position: relative;
+  max-width: 440px;
+  width: 100%;
+  padding: 3.25rem 2.25rem;
+  text-align: center;
+  background: var(--ivory-translucent);
+  border: 1px solid rgba(201, 162, 75, 0.45);
+  border-radius: var(--radius-md);
+  box-shadow: 
+    0 10px 40px rgba(0, 0, 0, 0.06),
+    0 0 0 5px rgba(201, 162, 75, 0.08),
+    inset 0 0 20px rgba(201, 162, 75, 0.04);
+  animation: fadeInScale 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 2;
+}
+
+/* Ornamental corner flourishes */
+.card-corner-motif {
+  position: absolute;
+  font-size: 0.8rem;
+  color: var(--gold);
+  line-height: 1;
+  opacity: 0.85;
+}
+
+.card-corner-motif.top-left {
+  top: 10px;
+  left: 10px;
+}
+
+.card-corner-motif.top-right {
+  top: 10px;
+  right: 10px;
+}
+
+.card-corner-motif.bottom-left {
+  bottom: 10px;
+  left: 10px;
+}
+
+.card-corner-motif.bottom-right {
+  bottom: 10px;
+  right: 10px;
+}
+
+/* Maratha arch & sun crest */
+.maratha-emblem-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+}
+
+.maratha-emblem-svg {
+  width: 72px;
+  height: 42px;
+  filter: drop-shadow(0 2px 4px rgba(201, 162, 75, 0.3));
+}
+
+/* Typography */
+.invitation-subtitle {
+  font-family: var(--font-heading);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--deep-gold);
+  margin-bottom: 0.65rem;
+}
+
+.client-name {
+  font-family: var(--font-royal);
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: var(--deep-gold);
+  line-height: 1.25;
+  margin-bottom: 0.35rem;
+  letter-spacing: 0.03em;
+  text-shadow: 0 1px 2px rgba(138, 106, 30, 0.1);
+}
+
+.event-name {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--gold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 1.35rem;
+}
+
+/* Ornamental Divider */
+.ornamental-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin: 1.25rem 0;
+}
+
+.ornamental-divider .divider-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--gold) 50%,
+    transparent 100%
+  );
+}
+
+.ornamental-divider .diamond {
+  color: var(--gold);
+  font-size: 0.6rem;
+  line-height: 1;
+}
+
+/* Tagline */
+.tagline {
+  font-size: 0.82rem;
+  font-style: italic;
+  font-family: var(--font-serif);
+  color: var(--text-muted);
+  line-height: 1.55;
+  margin-bottom: 1.5rem;
+  padding: 0 0.5rem;
+}
+
+/* Event Details (Date & Venue) */
+.event-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-bottom: 1.75rem;
+  background: rgba(201, 162, 75, 0.05);
+  padding: 1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(201, 162, 75, 0.15);
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+
+.detail-icon {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.detail-text {
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+/* Actions */
+.landing-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.landing-actions .btn-gold {
+  width: 100%;
+}
+
+/* ===== Responsive adjustments ===== */
+@media (max-width: 380px) {
+  .invitation-content {
+    padding: 2.25rem 1.25rem;
+  }
+
+  .client-name {
+    font-size: 1.5rem;
+  }
+
+  .event-name {
+    font-size: 1.05rem;
+  }
+
+  .detail-item {
+    font-size: 0.78rem;
+  }
+
+  .btn-gold {
+    padding: 12px 24px;
+    font-size: 0.78rem;
+  }
+}
+
+@media (min-height: 800px) {
+  .invitation-content {
+    padding: 3.75rem 2.5rem;
+  }
+}

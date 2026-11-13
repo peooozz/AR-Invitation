@@ -1,0 +1,80 @@
+[
+  {
+    "id": "raigad",
+    "name": "Raigad Fort",
+    "nameMarathi": "रायगड किल्ला",
+    "district": "Raigad",
+    "elevation": "2851 ft (869 m)",
+    "year": "1674",
+    "history": "Raigad Fort served as the capital of the Maratha Empire founded by Chhatrapati Shivaji Maharaj. He was coronated here on June 6, 1674, establishing Hindavi Swarajya. The fort features the grand Maha Darwaja, the royal court, and the samadhi (memorial) of Shivaji Maharaj.",
+    "coordinates": { "lat": 18.2335, "lng": 73.4478 },
+    "language": "en"
+  },
+  {
+    "id": "pratapgad",
+    "name": "Pratapgad Fort",
+    "nameMarathi": "प्रतापगड किल्ला",
+    "district": "Satara",
+    "elevation": "3543 ft (1080 m)",
+    "year": "1656",
+    "history": "Pratapgad Fort was built in 1656 by Shivaji Maharaj under the supervision of Moropant Trimbak Pingle. It is renowned for the Battle of Pratapgad in 1659, where Shivaji Maharaj defeated and slew Afzal Khan, the Adilshahi general. This decisive victory established Maratha military prowess across the Deccan.",
+    "coordinates": { "lat": 17.9367, "lng": 73.5783 },
+    "language": "en"
+  },
+  {
+    "id": "sinhagad",
+    "name": "Sinhagad Fort",
+    "nameMarathi": "सिंहगड किल्ला",
+    "district": "Pune",
+    "elevation": "4312 ft (1314 m)",
+    "year": "1670",
+    "history": "Sinhagad, originally called Kondhana, was the site of the legendary Battle of Sinhagad in 1670. Tanaji Malusare, a trusted commander of Shivaji Maharaj, led a daring night assault to recapture the fort from Mughal forces but sacrificed his life in the battle. Upon hearing of Tanaji's death, Shivaji Maharaj famously said, 'Gad aala pan Sinha gela' (The fort is won but the lion is lost).",
+    "coordinates": { "lat": 18.3666, "lng": 73.7558 },
+    "language": "en"
+  },
+  {
+    "id": "rajgad",
+    "name": "Rajgad Fort",
+    "nameMarathi": "राजगड किल्ला",
+    "district": "Pune",
+    "elevation": "4600 ft (1395 m)",
+    "year": "1648",
+    "history": "Rajgad Fort served as the first capital of the Maratha Empire for approximately 26 years before the capital was moved to Raigad. Shivaji Maharaj captured and fortified Rajgad around 1648, making it his political and military headquarters. Many key events of the early Maratha Empire unfolded within its walls.",
+    "coordinates": { "lat": 18.2447, "lng": 73.6836 },
+    "language": "en"
+  },
+  {
+    "id": "torna",
+    "name": "Torna Fort",
+    "nameMarathi": "तोरणा किल्ला",
+    "district": "Pune",
+    "elevation": "4603 ft (1403 m)",
+    "year": "1643",
+    "history": "Torna Fort holds the distinction of being the first fort captured by Shivaji Maharaj at the age of 16 in 1643, marking the beginning of the Maratha quest for Swarajya. After its capture, Shivaji Maharaj renamed it Prachandagad. It is one of the highest forts in the Pune district and symbolizes the start of the Maratha Empire.",
+    "coordinates": { "lat": 18.2764, "lng": 73.6233 },
+    "language": "en"
+  },
+  {
+    "id": "purandar",
+    "name": "Purandar Fort",
+    "nameMarathi": "पुरंदर किल्ला",
+    "district": "Pune",
+    "elevation": "4472 ft (1363 m)",
+    "year": "1665",
+    "history": "Purandar Fort is historically significant for the Treaty of Purandar signed in 1665 between Shivaji Maharaj and Jai Singh I, the Mughal commander. Under this treaty, Shivaji Maharaj ceded 23 forts to the Mughals. Sambhaji, the eldest son of Shivaji Maharaj, was born at this fort in 1657.",
+    "coordinates": { "lat": 18.2811, "lng": 73.9797 },
+    "language": "en"
+  },
+  {
+    "id": "shivneri",
+    "name": "Shivneri Fort",
+    "nameMarathi": "शिवनेरी किल्ला",
+    "district": "Pune",
+    "elevation": "3500 ft (1067 m)",
+    "year": "1630",
+    "history": "Shivneri Fort is the birthplace of Chhatrapati Shivaji Maharaj, born on February 19, 1630. His mother Jijabai stayed at this fort during his birth. The fort houses the temple of goddess Shivai, after whom Shivaji Maharaj was named, and remains a revered pilgrimage site for admirers of Maratha history.",
+    "coordinates": { "lat": 19.2094, "lng": 73.8553 },
+    "language": "en"
+  }
+]
+

@@ -1,0 +1,317 @@
+/* ===========================
+   AR.CSS — AR Scene, Camera & Overlays
+   =========================== */
+
+/* ===== AR Scene Container ===== */
+#ar-scene {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 35%, #2a2215 0%, #17120a 50%, #0a0805 100%);
+}
+
+/* ===== Camera Feed Video ===== */
+#camera-feed {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+  background: transparent;
+}
+
+/* Fallback Royal Backdrop when camera is off/denied */
+#camera-feed.fallback-bg {
+  display: none;
+}
+
+/* ===== Three.js WebGL Canvas ===== */
+#three-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  touch-action: none;
+}
+
+/* ===== AR Top Navigation Bar ===== */
+#ar-top-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: env(safe-area-inset-top, 12px) 16px 12px;
+  background: linear-gradient(180deg, rgba(14, 12, 9, 0.75) 0%, rgba(14, 12, 9, 0) 100%);
+  pointer-events: none;
+}
+
+#ar-top-bar > * {
+  pointer-events: auto;
+}
+
+.top-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 7px 14px;
+  font-family: var(--font-heading);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ivory);
+  background: rgba(20, 16, 12, 0.65);
+  border: 1px solid rgba(201, 162, 75, 0.4);
+  border-radius: var(--radius-full);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+}
+
+.top-nav-btn:hover {
+  background: rgba(40, 32, 22, 0.85);
+  border-color: var(--gold);
+  transform: translateY(-1px);
+}
+
+.instruction-pill {
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  font-weight: 500;
+  color: #ffeed0;
+  background: rgba(20, 16, 12, 0.55);
+  border: 1px solid rgba(201, 162, 75, 0.25);
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  pointer-events: none;
+  animation: fadeInScale 0.6s ease;
+  transition: opacity 0.5s ease;
+}
+
+@media (max-width: 480px) {
+  .nav-btn-text {
+    display: none;
+  }
+  .instruction-pill {
+    font-size: 0.62rem;
+    padding: 5px 10px;
+    max-width: 220px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* ===== Permission Screen ===== */
+#permission-screen .permission-card {
+  position: relative;
+  background: var(--ivory);
+  border-radius: var(--radius-lg);
+  padding: 2.75rem 2rem 2.25rem;
+  max-width: 380px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(201, 162, 75, 0.35);
+  animation: fadeInScale 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.permission-emblem {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1.25rem;
+  background: rgba(201, 162, 75, 0.12);
+  border: 1.5px solid var(--gold);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  box-shadow: 0 0 16px rgba(201, 162, 75, 0.25);
+}
+
+.permission-title {
+  font-family: var(--font-royal);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--deep-gold);
+  margin-bottom: 0.75rem;
+}
+
+.permission-desc {
+  font-size: 0.85rem;
+  color: var(--text-body);
+  line-height: 1.55;
+  margin-bottom: 1.25rem;
+}
+
+.permission-perks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  text-align: left;
+  background: rgba(201, 162, 75, 0.06);
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-sm);
+  border-left: 2px solid var(--gold);
+  margin-bottom: 1.5rem;
+}
+
+.perk-item {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+#permission-screen .btn-gold {
+  width: 100%;
+  margin-bottom: 0.65rem;
+}
+
+.permission-note {
+  display: block;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin-top: 0.75rem;
+}
+
+/* ===== Rotate Overlay ===== */
+#rotate-overlay .rotate-content {
+  text-align: center;
+  color: var(--white);
+  max-width: 320px;
+}
+
+.rotate-icon {
+  font-size: 3.2rem;
+  display: inline-block;
+  animation: rotatePhoneAnim 2.2s ease-in-out infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes rotatePhoneAnim {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  30%, 70% {
+    transform: rotate(90deg);
+  }
+}
+
+.rotate-heading {
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+  color: var(--gold-light);
+  margin-bottom: 0.5rem;
+}
+
+.rotate-text {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+}
+
+/* ===== Loading Overlay ===== */
+#loading-overlay .loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+/* ===== Fort Loading Mini Spinner ===== */
+#fort-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 25;
+  pointer-events: none;
+  background: rgba(14, 12, 9, 0.7);
+  padding: 16px;
+  border-radius: 50%;
+  border: 1px solid rgba(201, 162, 75, 0.3);
+  backdrop-filter: blur(6px);
+}
+
+/* ===== Pokemon GO Walking Navigation Controls ===== */
+#ar-walk-controls {
+  position: absolute;
+  bottom: 76px;
+  right: 18px;
+  z-index: 35;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.walk-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--white);
+  background: linear-gradient(135deg, rgba(201, 162, 75, 0.92) 0%, rgba(138, 106, 30, 0.95) 100%);
+  border: 1px solid rgba(255, 235, 175, 0.5);
+  border-radius: var(--radius-full);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.walk-nav-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 22px rgba(201, 162, 75, 0.5);
+}
+
+.walk-nav-btn:active {
+  transform: translateY(1px);
+}
+
+.walk-nav-btn-sm {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  color: var(--ivory);
+  background: rgba(20, 16, 12, 0.7);
+  border: 1px solid rgba(201, 162, 75, 0.4);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: transform 0.15s;
+}
+
+.walk-nav-btn-sm:hover {
+  background: rgba(40, 32, 22, 0.9);
+  border-color: var(--gold);
+}
+
+.walk-nav-btn-sm:active {
+  transform: scale(0.95);
+}

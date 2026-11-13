@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#C9A24B">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="An immersive WebAR invitation card celebrating 50+ historic forts of Chhatrapati Shivaji Maharaj. Explore in augmented reality.">
+  <title>Swarajya Forts — WebAR Royal Invitation</title>
+
+  <!-- Google Fonts: Cinzel Decorative, Cinzel, Playfair Display & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@500;600;700;800&family=Playfair+Display:ital,wght@0,600;1,500&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="./src/styles/main.css">
+  <link rel="stylesheet" href="./src/styles/landing.css">
+  <link rel="stylesheet" href="./src/styles/ar.css">
+  <link rel="stylesheet" href="./src/styles/components.css">
+</head>
+<body>
+
+  <!-- ===== 1. LANDING PAGE ===== -->
+  <section id="landing">
+    <!-- Royal Maratha Background Motifs -->
+    <div class="landing-bg-decorations">
+      <div class="gold-orb orb-1"></div>
+      <div class="gold-orb orb-2"></div>
+      <div class="gold-orb orb-3"></div>
+    </div>
+
+    <div class="invitation-content">
+      <!-- Royal Maratha Arch Crest SVG -->
+      <div class="maratha-emblem-container">
+        <svg class="maratha-emblem-svg" viewBox="0 0 120 70" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Maratha arch & sun burst motif -->
+          <path d="M60 4C42 4 28 14 20 30C16 38 14 50 14 62H106C106 50 104 38 100 30C92 14 78 4 60 4Z" stroke="url(#goldGrad)" stroke-width="1.8" fill="none"/>
+          <circle cx="60" cy="22" r="6" fill="url(#goldGrad)"/>
+          <path d="M60 10V16M60 28V34M48 22H54M66 22H72M51.5 13.5L55.7 17.7M64.3 26.3L68.5 30.5M68.5 13.5L64.3 17.7M55.7 26.3L51.5 30.5" stroke="url(#goldGrad)" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M30 62C30 52 42 44 60 44C78 44 90 52 90 62" stroke="url(#goldGrad)" stroke-width="1.2" stroke-dasharray="2 2"/>
+          <circle cx="60" cy="50" r="2" fill="url(#goldGrad)"/>
+          <defs>
+            <linearGradient id="goldGrad" x1="0" y1="0" x2="120" y2="70" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#C9A24B"/>
+              <stop offset="0.5" stop-color="#EED58D"/>
+              <stop offset="1" stop-color="#8A6A1E"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+
+      <p class="invitation-subtitle">Cordially Invites You To Celebrate</p>
+      <h1 id="landing-client-name" class="client-name">Shri Vikramaditya Shinde's</h1>
+      <h2 id="landing-event-name" class="event-name">50 Forts Swarajya Expedition</h2>
+
+      <div class="ornamental-divider">
+        <span class="divider-line"></span>
+        <span class="diamond">&#9670;</span>
+        <span class="divider-line"></span>
+      </div>
+
+      <p id="landing-tagline" class="tagline">Celebrating the triumphant ascent of 50+ historic forts of Chhatrapati Shivaji Maharaj</p>
+
+      <div class="event-details">
+        <div class="detail-item">
+          <span class="detail-icon">&#128197;</span>
+          <span id="landing-date" class="detail-text">Sunday, 28 February 2026 &bull; 6:00 PM</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-icon">&#128205;</span>
+          <span id="landing-venue" class="detail-text">The Heritage Palace, Pune</span>
+        </div>
+      </div>
+
+      <div class="landing-actions">
+        <button id="btn-begin" class="btn-gold">
+          <span class="btn-text">Begin the Journey</span>
+          <span class="btn-shimmer"></span>
+        </button>
+        <button id="btn-open-rsvp-landing" class="btn-text-gold">RSVP Online &rarr;</button>
+      </div>
+
+      <div class="card-corner-motif top-left">&#10022;</div>
+      <div class="card-corner-motif top-right">&#10022;</div>
+      <div class="card-corner-motif bottom-left">&#10022;</div>
+      <div class="card-corner-motif bottom-right">&#10022;</div>
+    </div>
+  </section>
+
+  <!-- ===== 2. PERMISSION SCREEN ===== -->
+  <div id="permission-screen" class="overlay hidden">
+    <div class="permission-card">
+      <div class="permission-emblem">
+        <span class="cam-icon">&#127909;</span>
+      </div>
+      <h2 class="permission-title">Enter the AR Citadel</h2>
+      <p class="permission-desc">
+        To view Chhatrapati Shivaji Maharaj and the 50 historic forts in true Augmented Reality, we request camera and gyroscope access.
+      </p>
+      <div class="permission-perks">
+        <div class="perk-item">&#10003; 3D Forts in your real space</div>
+        <div class="perk-item">&#10003; Gyroscope motion parallax</div>
+        <div class="perk-item">&#10003; Audio narrations in Marathi &amp; English</div>
+      </div>
+      <button id="btn-grant" class="btn-gold">
+        <span class="btn-text">Grant Access &amp; Enter</span>
+        <span class="btn-shimmer"></span>
+      </button>
+      <button id="btn-skip-camera" class="btn-text-muted">Enter Studio Mode (No Camera)</button>
+      <small class="permission-note">&#128274; Your camera stream is processed locally and never recorded or transmitted.</small>
+    </div>
+  </div>
+
+  <!-- ===== 3. ROTATE PHONE OVERLAY ===== -->
+  <div id="rotate-overlay" class="overlay hidden">
+    <div class="rotate-content">
+      <div class="rotate-icon">&#128241;</div>
+      <h3 class="rotate-heading">Landscape View Recommended</h3>
+      <p class="rotate-text">For the best immersive panorama of the forts, please rotate your phone horizontally.</p>
+      <button id="btn-continue-portrait" class="btn-gold-sm">Continue in Portrait Mode</button>
+    </div>
+  </div>
+
+  <!-- ===== 4. LOADING OVERLAY ===== -->
+  <div id="loading-overlay" class="overlay hidden">
+    <div class="loading-content">
+      <div class="loading-ring-wrap">
+        <div class="loading-ring"></div>
+        <span class="loading-symbol">&#9876;</span>
+      </div>
+      <p id="loading-msg" class="loading-text">Summoning Swarajya Citadels...</p>
+    </div>
+  </div>
+
+  <!-- ===== 5. AR SCENE ===== -->
+  <section id="ar-scene" class="hidden">
+    <!-- Camera Feed Video or Fallback Gradient Canvas -->
+    <video id="camera-feed" autoplay playsinline webkit-playsinline muted></video>
+    <canvas id="three-canvas"></canvas>
+
+    <!-- AR Top Navigation Bar -->
+    <header id="ar-top-bar">
+      <button id="btn-back-landing" class="top-nav-btn" aria-label="Return to Invitation">
+        <span>&larr;</span> <span class="nav-btn-text">Card</span>
+      </button>
+      <div id="ar-instruction-pill" class="instruction-pill">
+        <span>📍 9.5m to Swarajya Monument &bull; Walk closer</span>
+      </div>
+      <button id="btn-recenter" class="top-nav-btn" aria-label="Recenter Camera">
+        <span>&#8635;</span> <span class="nav-btn-text">Reset</span>
+      </button>
+    </header>
+
+    <!-- Fort Details Info Card (Sliding Sheet) -->
+    <div id="info-card" class="hidden">
+      <div class="info-card-handle"></div>
+      <button id="btn-close-info" aria-label="Close info card">&times;</button>
+      
+      <div class="info-header">
+        <div class="info-titles">
+          <h3 id="fort-name">Raigad Fort</h3>
+          <p id="fort-name-marathi" class="marathi-name">रायगड किल्ला</p>
+        </div>
+        <div class="fort-year-badge" id="fort-year">1674</div>
+      </div>
+
+      <div class="info-details-grid">
+        <div class="info-pill">
+          <span class="info-pill-label">District</span>
+          <span id="fort-district" class="info-pill-value">Raigad</span>
+        </div>
+        <div class="info-pill">
+          <span class="info-pill-label">Elevation</span>
+          <span id="fort-elevation" class="info-pill-value">2,851 ft</span>
+        </div>
+      </div>
+
+      <div class="ornamental-mini-divider">
+        <span>&#9670;</span>
+      </div>
+
+      <p id="fort-history" class="fort-description">
+        Capital of the Maratha Empire, coronated in 1674 by Chhatrapati Shivaji Maharaj.
+      </p>
+
+      <!-- Audio Narration Player -->
+      <div id="audio-player">
+        <div class="audio-player-header">
+          <span class="audio-label">&#127897; Historical Narration</span>
+          <span id="audio-time" class="audio-time">0:00 / 0:00</span>
+        </div>
+        <div class="audio-controls">
+          <button id="btn-play-pause" class="audio-btn" aria-label="Play or Pause Narration">
+            <span id="play-icon">&#9654;</span>
+          </button>
+          <div id="progress-container" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <div id="progress-fill"></div>
+          </div>
+          <button id="btn-mute" class="audio-btn" aria-label="Mute or Unmute">
+            <span id="mute-icon">&#128264;</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Surface AR Button (<model-viewer>) -->
+      <button id="btn-view-ar" class="btn-gold-sm">
+        <span class="ar-icon">&#128065;</span>
+        <span>View in Your Space (Surface AR)</span>
+      </button>
+    </div>
+
+    <!-- Hidden Model-Viewer Element for Native Surface AR (Scene Viewer & Quick Look) -->
+    <model-viewer
+      id="ar-model-viewer"
+      ar
+      ar-modes="webxr scene-viewer quick-look"
+      camera-controls
+      touch-action="pan-y"
+      shadow-intensity="1"
+      exposure="1.1"
+      style="display:none;"
+    ></model-viewer>
+
+    <!-- Fort Loading Spinner -->
+    <div id="fort-loading" class="hidden">
+      <div class="loading-ring small"></div>
+    </div>
+
+    <!-- Floating Walk Controls (Pokemon GO Navigation) -->
+    <div id="ar-walk-controls">
+      <button id="btn-walk-forward" class="walk-nav-btn" aria-label="Walk Closer">
+        <span class="walk-arrow">&#9650;</span>
+        <span class="walk-text">Walk Closer</span>
+      </button>
+      <button id="btn-walk-backward" class="walk-nav-btn-sm" aria-label="Step Back">
+        <span class="walk-arrow">&#9660;</span>
+      </button>
+    </div>
+
+    <!-- AR Footer Bar -->
+    <footer id="ar-footer">
+      <button id="btn-footer-rsvp" class="footer-link btn-gold-sm">RSVP</button>
+      <span id="footer-date-display" class="footer-date">&#128197; 28 Feb 2026</span>
+      <a id="btn-maps" class="footer-link btn-gold-sm" href="#" target="_blank" rel="noopener">Location &rarr;</a>
+    </footer>
+  </section>
+
+  <!-- ===== 6. RSVP MODAL ===== -->
+  <div id="rsvp-modal" class="overlay hidden">
+    <div class="rsvp-card">
+      <button id="btn-close-rsvp" class="btn-close-modal" aria-label="Close RSVP">&times;</button>
+      
+      <div class="rsvp-header">
+        <h3 class="rsvp-title">Royal RSVP</h3>
+        <p class="rsvp-subtitle">Please grace the occasion with your esteemed presence</p>
+      </div>
+
+      <div class="ornamental-divider">
+        <span class="divider-line"></span>
+        <span class="diamond">&#9670;</span>
+        <span class="divider-line"></span>
+      </div>
+
+      <form id="rsvp-form" class="rsvp-form" onsubmit="return false;">
+        <div class="form-group">
+          <label for="rsvp-guest-name">Your Full Name</label>
+          <input type="text" id="rsvp-guest-name" placeholder="Enter your name" required autocomplete="name">
+        </div>
+
+        <div class="form-group">
+          <label for="rsvp-attend-status">Will you be attending?</label>
+          <select id="rsvp-attend-status">
+            <option value="Joyfully Attending">Joyfully Attending</option>
+            <option value="Regretfully Unable">Regretfully Unable to Attend</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="rsvp-guest-count">Number of Guests</label>
+          <input type="number" id="rsvp-guest-count" value="1" min="1" max="10">
+        </div>
+
+        <div class="form-group">
+          <label for="rsvp-wishes">Warm Wishes / Notes (Optional)</label>
+          <textarea id="rsvp-wishes" rows="2" placeholder="Send your congratulations or special requirements..."></textarea>
+        </div>
+
+        <button id="btn-submit-whatsapp" class="btn-gold">
+          <span class="btn-text">Confirm via WhatsApp &rarr;</span>
+          <span class="btn-shimmer"></span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Main JavaScript Application Bundle -->
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

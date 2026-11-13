@@ -1,0 +1,292 @@
+/* ===========================
+   MAIN.CSS — Global Styles & Theme
+   =========================== */
+
+:root {
+  /* Palette: White & Gold Luxury */
+  --ivory: #FFFDF7;
+  --ivory-translucent: rgba(255, 253, 247, 0.94);
+  --ivory-glass: rgba(255, 253, 247, 0.88);
+  --gold: #C9A24B;
+  --gold-light: #EED58D;
+  --gold-glow: rgba(201, 162, 75, 0.35);
+  --deep-gold: #8A6A1E;
+  --maratha-saffron: #DE5B10;
+  --soft-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  --gold-shadow: 0 4px 20px rgba(201, 162, 75, 0.25);
+  --bg-dark: rgba(14, 12, 9, 0.88);
+  --white: #FFFFFF;
+  --text-primary: #231F1D;
+  --text-body: #4A443E;
+  --text-muted: #8A8175;
+
+  /* Typography */
+  --font-royal: 'Cinzel Decorative', 'Cinzel', serif;
+  --font-heading: 'Cinzel', serif;
+  --font-serif: 'Playfair Display', serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Radii */
+  --radius-xs: 3px;
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+}
+
+/* ===== CSS Reset ===== */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: fixed;
+  font-family: var(--font-body);
+  background: var(--ivory);
+  color: var(--text-body);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+button {
+  cursor: pointer;
+  background: none;
+  border: none;
+  touch-action: manipulation;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* ===== Utility Classes ===== */
+.hidden {
+  display: none !important;
+}
+
+/* ===== Fullscreen Glass Overlays ===== */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-dark);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 1.25rem;
+  transition: opacity 0.3s ease;
+}
+
+/* ===== Keyframe Animations ===== */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-150%);
+  }
+  100% {
+    transform: translateX(150%);
+  }
+}
+
+@keyframes pulseGoldGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(201, 162, 75, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 24px 6px rgba(201, 162, 75, 0.28);
+  }
+}
+
+@keyframes spinInfinite {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes floatGentle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ===== Gold Buttons ===== */
+.btn-gold {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 34px;
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--white);
+  background: linear-gradient(135deg, #DFB963 0%, #C9A24B 45%, #8A6A1E 100%);
+  border: 1px solid rgba(255, 235, 175, 0.4);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 16px rgba(138, 106, 30, 0.25);
+  overflow: hidden;
+  animation: pulseGoldGlow 3s ease-in-out infinite;
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease;
+}
+
+.btn-gold:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 22px rgba(201, 162, 75, 0.45);
+}
+
+.btn-gold:active {
+  transform: translateY(1px);
+}
+
+.btn-gold .btn-shimmer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.35) 50%,
+    transparent 100%
+  );
+  animation: shimmer 3.2s infinite ease-in-out;
+  pointer-events: none;
+}
+
+.btn-gold-sm {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 9px 20px;
+  font-family: var(--font-heading);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--white);
+  background: linear-gradient(135deg, #C9A24B 0%, #8A6A1E 100%);
+  border: 1px solid rgba(255, 235, 175, 0.3);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 2px 10px rgba(138, 106, 30, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-gold-sm:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(201, 162, 75, 0.35);
+}
+
+.btn-gold-sm:active {
+  transform: translateY(0);
+}
+
+.btn-text-gold {
+  display: inline-block;
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--deep-gold);
+  padding: 8px 12px;
+  border-bottom: 1px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.btn-text-gold:hover {
+  color: var(--gold);
+  border-bottom-color: var(--gold);
+}
+
+.btn-text-muted {
+  font-size: 0.78rem;
+  color: #c0b8ac;
+  text-decoration: underline;
+  padding: 8px;
+  transition: color 0.2s;
+}
+
+.btn-text-muted:hover {
+  color: var(--gold-light);
+}
+
+/* ===== Loading Spinner ===== */
+.loading-ring-wrap {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-ring {
+  width: 100%;
+  height: 100%;
+  border: 3px solid rgba(201, 162, 75, 0.2);
+  border-top-color: var(--gold);
+  border-right-color: var(--gold-light);
+  border-radius: 50%;
+  animation: spinInfinite 0.9s linear infinite;
+}
+
+.loading-ring.small {
+  width: 38px;
+  height: 38px;
+  border-width: 2.5px;
+}
+
+.loading-symbol {
+  position: absolute;
+  font-size: 1.25rem;
+  color: var(--gold);
+}
+
+.loading-text {
+  font-family: var(--font-heading);
+  font-size: 0.88rem;
+  letter-spacing: 0.1em;
+  color: var(--gold-light);
+  text-align: center;
+}

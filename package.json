@@ -1,0 +1,25 @@
+{
+  "name": "ar-invitation",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview --host",
+    "generate-audio": "node scripts/generate-audio.js",
+    "generate-qr": "node scripts/generate-qr.js",
+    "generate-starter-assets": "node scripts/generate-starter-assets.js"
+  },
+  "dependencies": {
+    "@google/model-viewer": "^4.0.0",
+    "three": "^0.183.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
+    "dotenv": "^16.4.0",
+    "qrcode": "^1.5.4",
+    "terser": "^5.37.0",
+    "vite": "^6.0.0"
+  }
+}
